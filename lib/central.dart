@@ -1,4 +1,5 @@
 import 'package:f_clean_template/features/product/ui/pages/list_product_page.dart';
+import 'package:f_clean_template/features/product/ui/pages/see_courses_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -13,7 +14,7 @@ class Central extends StatelessWidget {
     AuthenticationController authenticationController = Get.find();
     return Obx(
       () => authenticationController.isLogged
-          ? const ListProductPage()
+          ? const ListCoursePage()
           : const LoginPage(),
     );
   }
