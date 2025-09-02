@@ -9,4 +9,7 @@ class Course {
   String? id;
   String name;
   String description;
+  List<String> studentsNames = [];
+  List<String> teachersNames = [];
+  //int quantity;
 }

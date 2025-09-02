@@ -19,6 +19,13 @@ import 'features/product/data/repositories/product_repository.dart';
 import 'features/product/domain/repositories/i_product_repository.dart';
 import 'features/product/domain/use_case/product_usecase.dart';
 import 'features/product/ui/controller/product_controller.dart';
+import 'features/product/data/datasources/i_remote_course_source.dart';
+import 'features/product/data/datasources/remote_course_source.dart';
+import 'features/product/data/repositories/course_repository.dart';
+import 'features/product/domain/use_case/course_usecase.dart';
+import 'features/product/ui/controller/course_controller.dart';
+import 'features/product/data/datasources/i_course_source.dart';
+import 'features/product/data/datasources/local/local_course_source.dart';
 
 void main() {
   Loggy.initLoggy(logPrinter: const PrettyPrinter(showColors: true));
@@ -39,6 +46,16 @@ void main() {
   Get.put<IProductRepository>(ProductRepository(Get.find()));
   Get.put(ProductUseCase(Get.find()));
   Get.lazyPut(() => ProductController());
+
+  // Course
+  //Get.put<IRemoteCourseSource>(
+  //  RemoteCourseSource(Get.find<http.Client>(tag: 'apiClient')),
+  //);
+  Get.put<ICourseSource>(LocalCourseSource());
+  Get.put(CourseRepository(Get.find()));
+  Get.put(CourseUseCase(Get.find()));
+  Get.lazyPut(() => CourseController());
+
   runApp(const MyApp());
 }
 
