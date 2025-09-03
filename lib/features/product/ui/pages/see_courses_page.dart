@@ -1,4 +1,5 @@
 import 'package:f_clean_template/features/product/ui/pages/course_creation_page.dart';
+import 'package:f_clean_template/features/product/ui/pages/course_delete_update_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/course_controller.dart';
@@ -129,19 +130,39 @@ class _ListCoursePageState extends State<ListCoursePage> {
               },
             ),
       floatingActionButton: _isTeacherView
-          ? FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        TeacherCourseCreationPage(currentUser: _currentUser),
-                  ),
-                ).then(
-                  (_) => _loadCourses(),
-                ); // Refresh courses after returning
-              },
-              child: const Icon(Icons.add),
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  heroTag: "btn1",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CourseDeleteUpdatePage(
+                          currentUser: _currentUser,
+                        ), // Ejemplo
+                      ),
+                    ).then((_) => _loadCourses());
+                  },
+                  child: const Icon(Icons.remove),
+                ),
+                const SizedBox(width: 16),
+                FloatingActionButton(
+                  heroTag: "btn2",
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TeacherCourseCreationPage(
+                          currentUser: _currentUser,
+                        ),
+                      ),
+                    ).then((_) => _loadCourses());
+                  },
+                  child: const Icon(Icons.add),
+                ),
+              ],
             )
           : null,
     );

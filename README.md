@@ -7,3 +7,6 @@ Responsables Daniel Morillo, Juan Aragón
 
 ## Pantalla de Home integradora.
 Responsable Daniel Morillo
+
+## CRUD Categorias
+Responsable David Maury
