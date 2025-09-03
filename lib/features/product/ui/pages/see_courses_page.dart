@@ -1,3 +1,4 @@
+import 'package:f_clean_template/features/product/ui/pages/course_creation_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/course_controller.dart';
@@ -114,17 +115,40 @@ class _ListCoursePageState extends State<ListCoursePage> {
           ],
         ),
       ),
-      body: ListView.builder(
-        itemCount: _filteredCourses.length,
-        itemBuilder: (context, index) {
-          final course = _filteredCourses[index];
-          return ListTile(
-            title: Text(course.name),
-            subtitle: Text(course.description),
-            // ...other UI...
-          );
-        },
-      ),
+      body: _filteredCourses.isEmpty
+          ? const Center(child: Text("No hay cursos aún"))
+          : ListView.builder(
+              itemCount: _filteredCourses.length,
+              itemBuilder: (context, index) {
+                final course = _filteredCourses[index];
+                return ListTile(
+                  title: Text(course.name),
+                  subtitle: Text(course.description),
+                  // ...other UI...
+                );
+              },
+            ),
+      floatingActionButton: _isTeacherView
+          ? FloatingActionButton(
+              onPressed: () async {
+                final newCourse = await Navigator.push<Course>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TeacherCourseCreationPage(),
+                  ),
+                );
+                if (newCourse != null) {
+                  await _courseController.addCourse(
+                    newCourse.name,
+                    newCourse.description,
+                    "",
+                  );
+                  _loadCourses();
+                }
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 
