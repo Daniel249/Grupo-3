@@ -10,7 +10,7 @@ Responsable Daniel Morillo
 
 ## Función para visualizar cursos a los que se pertenece.
 Responsable Camilo Huyke
-=======
+
 ## CRUD Categorias
 Responsable David Maury
->>>>>>> 888138543bebaddab47b945381d2b65ac781aa82
+
