@@ -23,9 +23,14 @@ class CourseController extends GetxController {
     isLoading.value = false;
   }
 
-  addCourse(String name, String desc, String quantity) async {
+  addCourse(
+    String name,
+    String desc,
+    List<String> students,
+    String teacher,
+  ) async {
     logInfo("ProductController: Add course");
-    await courseUseCase.addCourse(name, desc);
+    await courseUseCase.addCourse(name, desc, students, teacher);
     getCourses();
   }
 

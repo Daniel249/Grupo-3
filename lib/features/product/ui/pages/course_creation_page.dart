@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../controller/course_controller.dart';
+import '../../domain/models/user.dart';
+//import '../controller/name_controller.dart';
+//import '../controller/description_controller.dart';
+//import '../controller/students_list_controller.dart';
 
 class TeacherCourseCreationPage extends StatefulWidget {
-  const TeacherCourseCreationPage({super.key});
+  final User currentUser;
+  const TeacherCourseCreationPage({super.key, required this.currentUser});
 
   @override
   State<TeacherCourseCreationPage> createState() =>
@@ -144,7 +150,20 @@ class _TeacherCourseCreationPageState extends State<TeacherCourseCreationPage> {
                       icon: const Icon(Icons.add),
                       label: const Text('Create Course'),
                       onPressed: () {
+                        // missing controllers for inputs
+                        final name = nameController.text;
+                        final description = descriptionController.text;
+                        final addedStudents = students.toList();
                         // TODO: Add your business logic to create the course here
+
+                        final courseController = Get.find<CourseController>();
+                        courseController.addCourse(
+                          name,
+                          description,
+                          addedStudents,
+                          widget.currentUser.name,
+                        );
+
                         Get.back(); // after creating, go back
                       },
                     ),

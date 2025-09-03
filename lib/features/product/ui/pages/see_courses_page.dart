@@ -24,7 +24,7 @@ class _ListCoursePageState extends State<ListCoursePage> {
     super.initState();
     _courseController = Get.find<CourseController>();
     //_currentUser = Get.find<User>();
-    _currentUser = User(name: "Daniel", id: "1"); // <-- This line
+    _currentUser = User(name: "Daniel", id: "4"); // <-- This line
     _loadCourses();
   }
 
@@ -34,7 +34,7 @@ class _ListCoursePageState extends State<ListCoursePage> {
     setState(() {
       if (_isTeacherView) {
         _filteredCourses = allCourses
-            .where((c) => c.teachersNames.contains(_currentUser.name))
+            .where((c) => c.teacher == _currentUser.name)
             .toList();
       } else {
         _filteredCourses = allCourses
@@ -130,21 +130,16 @@ class _ListCoursePageState extends State<ListCoursePage> {
             ),
       floatingActionButton: _isTeacherView
           ? FloatingActionButton(
-              onPressed: () async {
-                final newCourse = await Navigator.push<Course>(
+              onPressed: () {
+                Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => TeacherCourseCreationPage(),
+                    builder: (_) =>
+                        TeacherCourseCreationPage(currentUser: _currentUser),
                   ),
-                );
-                if (newCourse != null) {
-                  await _courseController.addCourse(
-                    newCourse.name,
-                    newCourse.description,
-                    "",
-                  );
-                  _loadCourses();
-                }
+                ).then(
+                  (_) => _loadCourses(),
+                ); // Refresh courses after returning
               },
               child: const Icon(Icons.add),
             )

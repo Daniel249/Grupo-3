@@ -8,8 +8,19 @@ class CourseUseCase {
 
   Future<List<Course>> getCourses() async => await repository.getCourses();
 
-  Future<void> addCourse(String name, String description) async =>
-      await repository.addCourse(Course(name: name, description: description));
+  Future<void> addCourse(
+    String name,
+    String description,
+    List<String> students,
+    String teacher,
+  ) async => await repository.addCourse(
+    Course(
+      name: name,
+      description: description,
+      studentsNames: students,
+      teacher: teacher,
+    ),
+  );
 
   Future<void> updateCourse(Course user) async =>
       await repository.updateCourse(user);
