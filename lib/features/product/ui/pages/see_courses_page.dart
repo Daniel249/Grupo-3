@@ -116,7 +116,7 @@ class _ListCoursePageState extends State<ListCoursePage> {
         ),
       ),
       body: _filteredCourses.isEmpty
-          ? const Center(child: Text("No hay cursos aún"))
+          ? const Center(child: Text("There're no courses available"))
           : ListView.builder(
               itemCount: _filteredCourses.length,
               itemBuilder: (context, index) {
