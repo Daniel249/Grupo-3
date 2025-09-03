@@ -27,8 +27,23 @@ import 'features/product/domain/use_case/course_usecase.dart';
 import 'features/product/ui/controller/course_controller.dart';
 import 'features/product/data/datasources/i_course_source.dart';
 import 'features/product/data/datasources/local/local_course_source.dart';
+import 'dart:ui'; // for PlatformDispatcher
 
 void main() {
+  // 🔹 Make Flutter print full stack traces instead of folding them
+  FlutterError.demangleStackTrace = (StackTrace stack) {
+    // You can do filtering here if needed,
+    // but returning the stack as-is gives you the full trace with file + line.
+    return stack;
+  };
+
+  // 🔹 Catch uncaught async errors and print them with stack traces
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Uncaught async error: $error');
+    debugPrint('Stack trace: $stack');
+    return true; // mark as handled so Flutter doesn't double-print
+  };
+
   Loggy.initLoggy(logPrinter: const PrettyPrinter(showColors: true));
 
   Get.put(http.Client(), tag: 'apiClient');
@@ -71,6 +86,15 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.dark,
       debugShowCheckedModeBanner: false,
       home: const Central(),
+      enableLog: true, // 🔹 Enables GetX logs
+      logWriterCallback: (String text, {bool isError = false}) {
+        // 🔹 Every log from GetX will come through here
+        debugPrint('GETX LOG: $text');
+        if (isError) {
+          // 🔹 Print stack trace when there is an error
+          debugPrint(StackTrace.current.toString());
+        }
+      },
     );
   }
 }

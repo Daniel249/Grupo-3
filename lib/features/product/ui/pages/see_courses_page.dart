@@ -21,14 +21,15 @@ class _ListCoursePageState extends State<ListCoursePage> {
   @override
   void initState() {
     super.initState();
-    _courseController = Get.put(CourseController());
+    _courseController = Get.find<CourseController>();
     //_currentUser = Get.find<User>();
     _currentUser = User(name: "Daniel", id: "1"); // <-- This line
     _loadCourses();
   }
 
   Future<void> _loadCourses() async {
-    final allCourses = await _courseController.getCourses();
+    await _courseController.getCourses();
+    final allCourses = _courseController.courses;
     setState(() {
       if (_isTeacherView) {
         _filteredCourses = allCourses
@@ -43,10 +44,12 @@ class _ListCoursePageState extends State<ListCoursePage> {
   }
 
   void _switchView(bool teacherView) {
+    bool flag = false;
     setState(() {
+      if (_isTeacherView != teacherView) flag = true;
       _isTeacherView = teacherView;
     });
-    _loadCourses();
+    if (flag) _loadCourses();
   }
 
   @override

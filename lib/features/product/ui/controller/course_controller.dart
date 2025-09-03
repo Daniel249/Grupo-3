@@ -17,7 +17,7 @@ class CourseController extends GetxController {
   }
 
   getCourses() async {
-    logInfo("ProductController: Getting courses");
+    logInfo("CourseController: Getting courses");
     isLoading.value = true;
     _courses.value = await courseUseCase.getCourses();
     isLoading.value = false;

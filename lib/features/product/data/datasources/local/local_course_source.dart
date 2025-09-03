@@ -1,18 +1,23 @@
+import 'dart:math';
 import '../../../domain/models/course.dart';
 import '../i_course_source.dart';
 
 class LocalCourseSource implements ICourseSource {
   final List<Course> _courses = <Course>[];
 
-  LocalCourseSource();
+  LocalCourseSource() {
+    _courses.add(
+      Course(id: '1', name: 'Course 1', description: 'Description 1'),
+    );
+  }
 
   @override
-  Future<List<Course>> getCourses() async => _courses;
+  Future<List<Course>> getCourses() => Future.value(_courses);
 
   @override
-  Future<bool> addCourse(Course course) async {
+  Future<bool> addCourse(Course course) {
     _courses.add(course);
-    return true;
+    return Future.value(true);
   }
 
   @override
