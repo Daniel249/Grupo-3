@@ -17,9 +17,10 @@ import 'features/product/data/datasources/i_remote_product_source.dart';
 import 'features/product/data/datasources/remote_product_source.dart';
 import 'features/product/data/repositories/product_repository.dart';
 import 'features/product/domain/repositories/i_product_repository.dart';
+import 'features/product/domain/repositories/i_course_repository.dart';
 import 'features/product/domain/use_case/product_usecase.dart';
 import 'features/product/ui/controller/product_controller.dart';
-import 'features/product/data/datasources/i_remote_course_source.dart';
+//import 'features/product/data/datasources/i_remote_course_source.dart';
 import 'features/product/data/datasources/remote_course_source.dart';
 import 'features/product/data/repositories/course_repository.dart';
 import 'features/product/domain/use_case/course_usecase.dart';
@@ -52,7 +53,7 @@ void main() {
   //  RemoteCourseSource(Get.find<http.Client>(tag: 'apiClient')),
   //);
   Get.put<ICourseSource>(LocalCourseSource());
-  Get.put(CourseRepository(Get.find()));
+  Get.put<ICourseRepository>(CourseRepository(Get.find()));
   Get.put(CourseUseCase(Get.find()));
   Get.lazyPut(() => CourseController());
 

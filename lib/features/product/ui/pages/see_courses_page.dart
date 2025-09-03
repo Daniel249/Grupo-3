@@ -22,7 +22,8 @@ class _ListCoursePageState extends State<ListCoursePage> {
   void initState() {
     super.initState();
     _courseController = Get.put(CourseController());
-    _currentUser = Get.find<User>();
+    //_currentUser = Get.find<User>();
+    _currentUser = User(name: "Daniel", id: "1"); // <-- This line
     _loadCourses();
   }
 

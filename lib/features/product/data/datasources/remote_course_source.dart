@@ -2,9 +2,9 @@ import 'package:loggy/loggy.dart';
 import '../../domain/models/course.dart';
 import 'package:http/http.dart' as http;
 
-import 'i_remote_course_source.dart';
+import 'i_course_source.dart';
 
-class RemoteCourseSource implements IRemoteCourseSource {
+class RemoteCourseSource implements ICourseSource {
   final http.Client httpClient;
 
   RemoteCourseSource(this.httpClient);

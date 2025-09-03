@@ -2,7 +2,9 @@ import '../../../domain/models/course.dart';
 import '../i_course_source.dart';
 
 class LocalCourseSource implements ICourseSource {
-  final List<Course> _courses = [];
+  final List<Course> _courses = <Course>[];
+
+  LocalCourseSource();
 
   @override
   Future<List<Course>> getCourses() async => _courses;
