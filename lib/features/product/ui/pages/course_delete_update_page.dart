@@ -131,6 +131,7 @@ class _CourseDeleteUpdatePage extends State<CourseDeleteUpdatePage> {
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
                         ),
                         icon: const Icon(Icons.delete),
                         label: const Text("Delete"),
@@ -146,6 +147,7 @@ class _CourseDeleteUpdatePage extends State<CourseDeleteUpdatePage> {
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.deepPurple,
+                          foregroundColor: Colors.white,
                         ),
                         icon: const Icon(Icons.save),
                         label: const Text("Save Changes"),

@@ -1,10 +1,12 @@
 import 'package:f_clean_template/features/product/ui/pages/course_creation_page.dart';
 import 'package:f_clean_template/features/product/ui/pages/course_delete_update_page.dart';
+//import 'package:f_clean_template/features/product/ui/pages/course_view_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/course_controller.dart';
 import '../../domain/models/user.dart';
-import '../../domain/models/course.dart'; // <-- Added import
+import '../../domain/models/course.dart';
+import 'teacher_course_view.dart';
 
 class ListCoursePage extends StatefulWidget {
   // Removed isTeacherView from constructor, will use state instead
@@ -125,7 +127,19 @@ class _ListCoursePageState extends State<ListCoursePage> {
                 return ListTile(
                   title: Text(course.name),
                   subtitle: Text(course.description),
-                  // ...other UI...
+                  onTap: () {
+                    if (_isTeacherView) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TeacherCourseViewPage(
+                            course: course,
+                            currentUser: _currentUser,
+                          ),
+                        ),
+                      ).then((_) => _loadCourses());
+                    }
+                  },
                 );
               },
             ),

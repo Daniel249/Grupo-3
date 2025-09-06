@@ -1,3 +1,6 @@
+import 'activity.dart';
+import 'category.dart';
+
 class Course {
   Course({
     this.id,
@@ -5,6 +8,8 @@ class Course {
     required this.description,
     required this.studentsNames,
     required this.teacher,
+    this.activities,
+    this.categories,
   });
 
   String? id;
@@ -12,4 +17,6 @@ class Course {
   String description;
   List<String> studentsNames = [];
   String teacher;
+  List<Activity>? activities;
+  List<Category>? categories;
 }
