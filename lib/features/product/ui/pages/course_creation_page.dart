@@ -154,7 +154,6 @@ class _TeacherCourseCreationPageState extends State<TeacherCourseCreationPage> {
                         final name = nameController.text;
                         final description = descriptionController.text;
                         final addedStudents = students.toList();
-                        // TODO: Add your business logic to create the course here
 
                         final courseController = Get.find<CourseController>();
                         courseController.addCourse(
