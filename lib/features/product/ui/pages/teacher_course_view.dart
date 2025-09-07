@@ -1,11 +1,13 @@
 //import 'package:f_clean_template/features/product/ui/controller/course_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../domain/models/course.dart';
 import '../../domain/models/user.dart';
-//import '../../domain/models/activity.dart';
 import '../../domain/models/category.dart';
 import 'see_categories_page.dart';
-//import 'package:get/get.dart';
+import 'package:f_clean_template/features/product/ui/controller/course_controller.dart';
+import '../../domain/models/activity.dart';
+import '../controller/category_controller.dart';
 
 class TeacherCourseViewPage extends StatefulWidget {
   final Course course;
@@ -71,6 +73,8 @@ class DescriptionTab extends StatefulWidget {
 }
 
 class _DescriptionTabState extends State<DescriptionTab> {
+  final CourseController _courseController = Get.find<CourseController>();
+
   void _showUpdateDescriptionDialog(BuildContext context) {
     final descriptionController = TextEditingController(
       text: widget.course.description,
@@ -81,7 +85,7 @@ class _DescriptionTabState extends State<DescriptionTab> {
       builder: (context) => AlertDialog(
         title: const Text('Update Description'),
         content: SizedBox(
-          width: MediaQuery.of(context).size.width * 0.8, // 80% of screen width
+          width: MediaQuery.of(context).size.width * 0.8,
           child: TextField(
             controller: descriptionController,
             maxLines: 5,
@@ -98,8 +102,19 @@ class _DescriptionTabState extends State<DescriptionTab> {
           ),
           ElevatedButton(
             onPressed: () {
-              widget.course.description = descriptionController.text;
-
+              final updatedCourse = Course(
+                id: widget.course.id,
+                name: widget.course.name,
+                description: descriptionController.text,
+                studentsNames: widget.course.studentsNames,
+                teacher: widget.course.teacher,
+                activities: widget.course.activities,
+                categories: widget.course.categories,
+              );
+              _courseController.updateCourse(updatedCourse);
+              setState(() {
+                widget.course.description = descriptionController.text;
+              });
               Navigator.pop(context);
             },
             child: const Text('Update'),
@@ -131,6 +146,21 @@ class _DescriptionTabState extends State<DescriptionTab> {
           ElevatedButton(
             onPressed: () {
               if (studentController.text.isNotEmpty) {
+                final List<String> updatedStudents = [
+                  ...widget.course.studentsNames,
+                ];
+                updatedStudents.add(studentController.text);
+
+                final updatedCourse = Course(
+                  id: widget.course.id,
+                  name: widget.course.name,
+                  description: widget.course.description,
+                  studentsNames: updatedStudents,
+                  teacher: widget.course.teacher,
+                  activities: widget.course.activities,
+                  categories: widget.course.categories,
+                );
+                _courseController.updateCourse(updatedCourse);
                 setState(() {
                   widget.course.studentsNames.add(studentController.text);
                 });
@@ -173,6 +203,21 @@ class _DescriptionTabState extends State<DescriptionTab> {
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
                           onPressed: () {
+                            final List<String> updatedStudents = [
+                              ...widget.course.studentsNames,
+                            ];
+                            updatedStudents.removeAt(index);
+
+                            final updatedCourse = Course(
+                              id: widget.course.id,
+                              name: widget.course.name,
+                              description: widget.course.description,
+                              studentsNames: updatedStudents,
+                              teacher: widget.course.teacher,
+                              activities: widget.course.activities,
+                              categories: widget.course.categories,
+                            );
+                            _courseController.updateCourse(updatedCourse);
                             setState(() {
                               widget.course.studentsNames.removeAt(index);
                             });
@@ -203,8 +248,34 @@ class _DescriptionTabState extends State<DescriptionTab> {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement delete course
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Delete Course'),
+                        content: const Text(
+                          'Are you sure you want to delete this course?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Cancel'),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Delete'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmed ?? false) {
+                      _courseController.deleteCourse(widget.course);
+                      Navigator.pop(context); // Return to courses list
+                    }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   child: const Text('Delete Course'),
@@ -218,10 +289,17 @@ class _DescriptionTabState extends State<DescriptionTab> {
   }
 }
 
-class ActivitiesTab extends StatelessWidget {
+class ActivitiesTab extends StatefulWidget {
   final Course course;
 
   const ActivitiesTab({super.key, required this.course});
+
+  @override
+  State<ActivitiesTab> createState() => _ActivitiesTabState();
+}
+
+class _ActivitiesTabState extends State<ActivitiesTab> {
+  final CourseController _courseController = Get.find<CourseController>();
 
   @override
   Widget build(BuildContext context) {
@@ -231,16 +309,33 @@ class ActivitiesTab extends StatelessWidget {
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: course.activities?.length ?? 0,
+              itemCount: widget.course.activities?.length ?? 0,
               itemBuilder: (context, index) {
-                final activity = course.activities![index];
+                final activity = widget.course.activities![index];
                 return ListTile(
                   title: Text(activity.name),
                   subtitle: Text(activity.category.name),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () {
-                      // TODO: Implement delete activity
+                      final List<Activity> updatedActivities = [
+                        ...widget.course.activities ?? [],
+                      ];
+                      updatedActivities.removeAt(index);
+
+                      final updatedCourse = Course(
+                        id: widget.course.id,
+                        name: widget.course.name,
+                        description: widget.course.description,
+                        studentsNames: widget.course.studentsNames,
+                        teacher: widget.course.teacher,
+                        activities: updatedActivities,
+                        categories: widget.course.categories,
+                      );
+                      _courseController.updateCourse(updatedCourse);
+                      setState(() {
+                        widget.course.activities?.removeAt(index);
+                      });
                     },
                   ),
                 );
@@ -294,10 +389,28 @@ class ActivitiesTab extends StatelessWidget {
   }
 }
 
-class CategoriesTab extends StatelessWidget {
+class CategoriesTab extends StatefulWidget {
   final Course course;
 
   const CategoriesTab({super.key, required this.course});
+
+  @override
+  State<CategoriesTab> createState() => _CategoriesTabState();
+}
+
+class _CategoriesTabState extends State<CategoriesTab> {
+  //final CourseController _courseController = Get.find<CourseController>();
+  final CategoryController _categoryController = Get.find<CategoryController>();
+
+  List<Category> get _courseCategories => _categoryController.categories
+      .where((category) => category.courseID == widget.course.id)
+      .toList();
+
+  @override
+  void initState() {
+    super.initState();
+    _categoryController.getCategories();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -306,26 +419,28 @@ class CategoriesTab extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: course.categories?.length ?? 0,
-              itemBuilder: (context, index) {
-                final category = course.categories![index];
-                return ListTile(
-                  title: Text(category.name),
-                  subtitle: Text(
-                    category.isRandomSelection
-                        ? 'Random Selection'
-                        : 'Self-Organized',
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      // TODO: Implement delete category
-                    },
-                  ),
-                  onTap: () => _showCategoryPage(context, category),
-                );
-              },
+            child: Obx(
+              () => ListView.builder(
+                itemCount: _courseCategories.length,
+                itemBuilder: (context, index) {
+                  final category = _courseCategories[index];
+                  return ListTile(
+                    title: Text(category.name),
+                    subtitle: Text(
+                      category.isRandomSelection
+                          ? 'Random Selection'
+                          : 'Self-Organized',
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        _categoryController.deleteCategory(category);
+                      },
+                    ),
+                    onTap: () => _showCategoryPage(context, category),
+                  );
+                },
+              ),
             ),
           ),
           ElevatedButton(
@@ -372,7 +487,13 @@ class CategoriesTab extends StatelessWidget {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // TODO: Implement add category
+                    final newCategory = Category(
+                      name: nameController.text,
+                      isRandomSelection: isRandom,
+                      courseID: int.parse(widget.course.id!),
+                      groups: [],
+                    );
+                    _categoryController.addCategory(newCategory);
                     Navigator.pop(context);
                   },
                   child: const Text('Add'),
