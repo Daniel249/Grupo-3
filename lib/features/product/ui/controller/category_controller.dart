@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../domain/models/category.dart';
 import '../../domain/use_case/category_usecase.dart';
+import '../../domain/models/group.dart';
 
 class CategoryController extends GetxController {
   final RxList<Category> _categories = <Category>[].obs;
@@ -14,8 +15,20 @@ class CategoryController extends GetxController {
     isLoading.value = false;
   }
 
-  Future<void> addCategory(Category category) async {
-    await categoryUseCase.addCategory(category);
+  Future<void> addCategory(
+    String name,
+    bool isRandomSelection,
+    int courseID,
+    int groupSize,
+    List<Group> groups,
+  ) async {
+    await categoryUseCase.addCategory(
+      name,
+      isRandomSelection,
+      courseID,
+      groupSize,
+      groups,
+    );
     await getCategories();
   }
 

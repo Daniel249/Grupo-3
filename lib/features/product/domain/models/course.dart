@@ -1,9 +1,11 @@
+//import 'dart:ffi';
+
 import 'activity.dart';
 import 'category.dart';
 
 class Course {
   Course({
-    this.id,
+    required this.id,
     required this.name,
     required this.description,
     required this.studentsNames,
@@ -12,7 +14,7 @@ class Course {
     this.categories,
   });
 
-  String? id;
+  int id;
   String name;
   String description;
   List<String> studentsNames = [];

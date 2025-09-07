@@ -6,12 +6,14 @@ class Category {
   final bool isRandomSelection;
   final int? id;
   final int? courseID;
+  final int groupSize; // New field
 
   Category({
-    this.id,
-    this.courseID,
+    required this.id,
+    required this.courseID,
     required this.name,
     required this.groups,
     required this.isRandomSelection,
+    required this.groupSize, // Add to constructor
   });
 }

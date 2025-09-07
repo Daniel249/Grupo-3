@@ -433,8 +433,10 @@ class _CategoriesTabState extends State<CategoriesTab> {
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete),
-                      onPressed: () {
-                        _categoryController.deleteCategory(category);
+                      onPressed: () async {
+                        await _categoryController.deleteCategory(category);
+                        await _categoryController.getCategories();
+                        setState(() {});
                       },
                     ),
                     onTap: () => _showCategoryPage(context, category),
@@ -452,14 +454,15 @@ class _CategoriesTabState extends State<CategoriesTab> {
     );
   }
 
-  void _showAddCategoryDialog(BuildContext context) {
-    showDialog(
+  void _showAddCategoryDialog(BuildContext context) async {
+    final nameController = TextEditingController();
+    final groupSizeController = TextEditingController();
+    bool isRandom = false;
+    final result = await showDialog(
       context: context,
       builder: (context) {
-        final nameController = TextEditingController();
-        bool isRandom = false;
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setStateDialog) {
             return AlertDialog(
               title: const Text('Add Category'),
               content: Column(
@@ -471,11 +474,16 @@ class _CategoriesTabState extends State<CategoriesTab> {
                       labelText: 'Category Name',
                     ),
                   ),
+                  TextField(
+                    controller: groupSizeController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Group Size'),
+                  ),
                   CheckboxListTile(
                     title: const Text('Random Selection'),
                     value: isRandom,
                     onChanged: (value) {
-                      setState(() => isRandom = value ?? false);
+                      setStateDialog(() => isRandom = value ?? false);
                     },
                   ),
                 ],
@@ -486,15 +494,23 @@ class _CategoriesTabState extends State<CategoriesTab> {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    final newCategory = Category(
-                      name: nameController.text,
-                      isRandomSelection: isRandom,
-                      courseID: int.parse(widget.course.id!),
-                      groups: [],
-                    );
-                    _categoryController.addCategory(newCategory);
-                    Navigator.pop(context);
+                  onPressed: () async {
+                    if (nameController.text.isNotEmpty &&
+                        groupSizeController.text.isNotEmpty) {
+                      final groupSize =
+                          int.tryParse(groupSizeController.text) ?? 1;
+                      await _categoryController.addCategory(
+                        nameController.text,
+                        isRandom,
+                        widget.course.id,
+                        groupSize, // Pass group size as second to last
+                        [], // Empty groups list as last parameter
+                      );
+                      Navigator.pop(
+                        context,
+                        true,
+                      ); // return true to indicate added
+                    }
                   },
                   child: const Text('Add'),
                 ),
@@ -504,6 +520,10 @@ class _CategoriesTabState extends State<CategoriesTab> {
         );
       },
     );
+    if (result == true) {
+      await _categoryController.getCategories();
+      setState(() {}); // Rebuild main tab
+    }
   }
 
   void _showCategoryPage(BuildContext context, Category category) {

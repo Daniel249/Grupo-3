@@ -1,4 +1,4 @@
-import 'dart:math';
+//import 'dart:math';
 import '../../../domain/models/course.dart';
 import '../i_course_source.dart';
 
@@ -8,7 +8,7 @@ class LocalCourseSource implements ICourseSource {
   LocalCourseSource() {
     _courses.add(
       Course(
-        id: '1',
+        id: 2,
         name: 'Course 1',
         description: 'Description 1',
         studentsNames: ['Alice', 'Bob', 'Daniel'],
@@ -17,7 +17,7 @@ class LocalCourseSource implements ICourseSource {
     );
     _courses.add(
       Course(
-        id: '1',
+        id: 1,
         name: 'Course 2',
         description: 'Description 1',
         studentsNames: ['Alice2', 'Bob2'],

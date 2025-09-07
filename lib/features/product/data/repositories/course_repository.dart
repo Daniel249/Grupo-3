@@ -1,6 +1,6 @@
 import 'package:f_clean_template/features/product/domain/repositories/i_course_repository.dart';
 import '../datasources/i_course_source.dart';
-import '../datasources/remote_course_source.dart';
+//import '../datasources/remote_course_source.dart';
 import '../../domain/models/course.dart';
 
 class CourseRepository implements ICourseRepository {

@@ -1,3 +1,4 @@
+import 'dart:math';
 import '../models/course.dart';
 import '../repositories/i_course_repository.dart';
 
@@ -15,6 +16,7 @@ class CourseUseCase {
     String teacher,
   ) async => await repository.addCourse(
     Course(
+      id: Random().nextInt(10000),
       name: name,
       description: description,
       studentsNames: students,

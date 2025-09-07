@@ -1,8 +1,31 @@
 import '../../../domain/models/category.dart';
 import '../i_category_source.dart';
+import '../../../domain/models/group.dart';
 
 class LocalCategorySource implements ICategorySource {
   final List<Category> _categories = <Category>[];
+
+  LocalCategorySource() {
+    // Initial dummy data
+    _categories.addAll([
+      Category(
+        id: 1,
+        name: 'Category 1',
+        courseID: 1,
+        groupSize: 3,
+        groups: [Group(id: 1, name: 'Group 1', students: List.empty())],
+        isRandomSelection: false,
+      ),
+      Category(
+        id: 2,
+        name: 'Category 2',
+        courseID: 1,
+        groupSize: 3,
+        groups: [Group(id: 2, name: 'Group 2', students: List.empty())],
+        isRandomSelection: true,
+      ),
+    ]);
+  }
 
   @override
   Future<List<Category>> getCategories() => Future.value(_categories);
