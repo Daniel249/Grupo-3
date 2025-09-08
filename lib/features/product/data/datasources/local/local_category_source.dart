@@ -25,8 +25,8 @@ class LocalCategorySource implements ICategorySource {
         isRandomSelection: true,
       ),
       Category(
-        id: 2,
-        name: 'Category 2',
+        id: 3,
+        name: 'Category 3',
         courseID: 1,
         groupSize: 3,
         groups: [Group(id: 2, name: 'Group 2', students: <String>[])],
