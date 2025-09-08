@@ -13,7 +13,7 @@ class LocalCategorySource implements ICategorySource {
         name: 'Category 1',
         courseID: 1,
         groupSize: 3,
-        groups: [Group(id: 1, name: 'Group 1', students: List.empty())],
+        groups: [Group(id: 1, name: 'Group 1', students: <String>[])],
         isRandomSelection: false,
       ),
       Category(
@@ -21,7 +21,15 @@ class LocalCategorySource implements ICategorySource {
         name: 'Category 2',
         courseID: 1,
         groupSize: 3,
-        groups: [Group(id: 2, name: 'Group 2', students: List.empty())],
+        groups: [Group(id: 2, name: 'Group 2', students: <String>[])],
+        isRandomSelection: true,
+      ),
+      Category(
+        id: 2,
+        name: 'Category 2',
+        courseID: 1,
+        groupSize: 3,
+        groups: [Group(id: 2, name: 'Group 2', students: <String>[])],
         isRandomSelection: true,
       ),
     ]);

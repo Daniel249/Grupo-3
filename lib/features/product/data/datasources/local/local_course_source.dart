@@ -12,7 +12,7 @@ class LocalCourseSource implements ICourseSource {
         name: 'Course 1',
         description: 'Description 1',
         studentsNames: ['Alice', 'Bob', 'Daniel'],
-        teacher: 'Mr. Smith',
+        teacher: 'Daniel',
       ),
     );
     _courses.add(
@@ -20,8 +20,8 @@ class LocalCourseSource implements ICourseSource {
         id: 1,
         name: 'Course 2',
         description: 'Description 1',
-        studentsNames: ['Alice2', 'Bob2'],
-        teacher: 'Daniel',
+        studentsNames: ['Alice2', 'Bob2', 'Daniel'],
+        teacher: 'Smith',
       ),
     );
   }

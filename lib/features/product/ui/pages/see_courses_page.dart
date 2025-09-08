@@ -6,7 +6,9 @@ import 'package:get/get.dart';
 import '../controller/course_controller.dart';
 import '../../domain/models/user.dart';
 import '../../domain/models/course.dart';
-import 'teacher_course_view.dart';
+import 'package:f_clean_template/features/product/ui/pages/teacher_course_view.dart';
+import 'join_course_screen.dart';
+import 'student_course_detail.dart';
 
 class ListCoursePage extends StatefulWidget {
   // Removed isTeacherView from constructor, will use state instead
@@ -120,28 +122,62 @@ class _ListCoursePageState extends State<ListCoursePage> {
       ),
       body: _filteredCourses.isEmpty
           ? const Center(child: Text("There're no courses available"))
-          : ListView.builder(
-              itemCount: _filteredCourses.length,
-              itemBuilder: (context, index) {
-                final course = _filteredCourses[index];
-                return ListTile(
-                  title: Text(course.name),
-                  subtitle: Text(course.description),
-                  onTap: () {
-                    if (_isTeacherView) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => TeacherCourseViewPage(
-                            course: course,
-                            currentUser: _currentUser,
-                          ),
-                        ),
-                      ).then((_) => _loadCourses());
-                    }
+          : Stack(
+              children: [
+                ListView.builder(
+                  itemCount: _filteredCourses.length,
+                  itemBuilder: (context, index) {
+                    final course = _filteredCourses[index];
+                    return ListTile(
+                      title: Text(course.name),
+                      subtitle: Text(course.description),
+                      onTap: () {
+                        if (_isTeacherView) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TeacherCourseViewPage(
+                                course: course,
+                                currentUser: _currentUser,
+                              ),
+                            ),
+                          ).then((_) => _loadCourses());
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => StudentCourseDetailScreen(
+                                course: course,
+                                currentUser: _currentUser,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    );
                   },
-                );
-              },
+                ),
+                if (!_isTeacherView)
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Unirse a un curso'),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                JoinCourseScreen(currentUser: _currentUser),
+                          ),
+                        );
+                        await _loadCourses(); // Refresca la lista al volver
+                      },
+                    ),
+                  ),
+              ],
             ),
       floatingActionButton: _isTeacherView
           ? Row(
