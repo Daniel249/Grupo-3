@@ -11,7 +11,7 @@ class LocalCourseSource implements ICourseSource {
         id: 2,
         name: 'Course 1',
         description: 'Description 1',
-        studentsNames: ['Alice', 'Bob', 'Daniel'],
+        studentsNames: ['Alice', 'Bob', 'Charlie'],
         teacher: 'Daniel',
       ),
     );
