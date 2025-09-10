@@ -34,6 +34,7 @@ import 'features/product/domain/repositories/i_category_repository.dart';
 import 'features/product/domain/use_case/category_usecase.dart';
 import 'features/product/ui/controller/category_controller.dart';
 import 'dart:ui'; // for PlatformDispatcher
+import 'features/auth/data/datasources/local/local_authentication_source_service.dart';
 
 void main() {
   // 🔹 Make Flutter print full stack traces instead of folding them
@@ -55,7 +56,7 @@ void main() {
   Get.put(http.Client(), tag: 'apiClient');
 
   // Auth
-  Get.put<IAuthenticationSource>(AuthenticationSourceService());
+  Get.put<IAuthenticationSource>(LocalAuthenticationSourceService());
   Get.put<IAuthRepository>(AuthRepository(Get.find()));
   Get.put(AuthenticationUseCase(Get.find()));
   Get.put(AuthenticationController(Get.find()));

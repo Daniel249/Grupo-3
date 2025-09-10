@@ -11,8 +11,8 @@ import 'join_course_screen.dart';
 import 'student_course_detail.dart';
 
 class ListCoursePage extends StatefulWidget {
-  // Removed isTeacherView from constructor, will use state instead
-  const ListCoursePage({super.key});
+  final User user;
+  const ListCoursePage({super.key, required this.user});
 
   @override
   State<ListCoursePage> createState() => _ListCoursePageState();
@@ -28,8 +28,7 @@ class _ListCoursePageState extends State<ListCoursePage> {
   void initState() {
     super.initState();
     _courseController = Get.find<CourseController>();
-    //_currentUser = Get.find<User>();
-    _currentUser = User(name: "Daniel", id: "4"); // <-- This line
+    _currentUser = widget.user; // Usa el user recibido, elimina el mockup
     _loadCourses();
   }
 

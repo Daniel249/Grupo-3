@@ -8,20 +8,11 @@ class LocalCourseSource implements ICourseSource {
   LocalCourseSource() {
     _courses.add(
       Course(
-        id: 2,
+        id: 1,
         name: 'Course 1',
         description: 'Description 1',
-        studentsNames: ['Alice', 'Bob', 'Charlie'],
-        teacher: 'Daniel',
-      ),
-    );
-    _courses.add(
-      Course(
-        id: 1,
-        name: 'Course 2',
-        description: 'Description 1',
-        studentsNames: ['Alice2', 'Bob2', 'Daniel'],
-        teacher: 'Smith',
+        studentsNames: ['b'],
+        teacher: 'a',
       ),
     );
   }
