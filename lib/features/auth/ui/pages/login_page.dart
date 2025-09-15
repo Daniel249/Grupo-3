@@ -1,9 +1,7 @@
-import 'dart:io';
-import 'package:flutter/services.dart' show rootBundle;
-//import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:loggy/loggy.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../controller/authentication_controller.dart';
 import 'signup_page.dart';
 
@@ -30,21 +28,29 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _loadSavedCredentials() async {
     try {
-      final content = await rootBundle.loadString('assets/save_user.txt');
-      final lines = content.split('\n');
-      if (lines.length >= 2) {
-        controllerEmail.text = lines[0].trim();
-        controllerPassword.text = lines[1].trim();
-      }
+      final prefs = await SharedPreferences.getInstance();
+      final savedEmail = prefs.getString('saved_email') ?? '';
+      final savedPassword = prefs.getString('saved_password') ?? '';
+      controllerEmail.text = savedEmail;
+      controllerPassword.text = savedPassword;
+      _saveCredentials = savedEmail.isNotEmpty && savedPassword.isNotEmpty;
     } catch (e) {
-      // Si hay error, deja los campos vacíos
+      controllerEmail.text = '';
+      controllerPassword.text = '';
     }
     setState(() {});
   }
 
-  Future<void> _saveCredentialsToFile(String email, String password) async {
-    final file = File('save_user.txt');
-    await file.writeAsString('$email\n$password');
+  Future<void> _saveCredentialsToPrefs(String email, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_email', email);
+    await prefs.setString('saved_password', password);
+  }
+
+  Future<void> _clearSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('saved_email');
+    await prefs.remove('saved_password');
   }
 
   Future<bool> _login(theEmail, thePassword) async {
@@ -54,8 +60,12 @@ class _LoginPageState extends State<LoginPage> {
         theEmail,
         thePassword,
       );
-      if (result && _saveCredentials) {
-        await _saveCredentialsToFile(theEmail, thePassword);
+      if (result) {
+        if (_saveCredentials) {
+          await _saveCredentialsToPrefs(theEmail, thePassword);
+        } else {
+          await _clearSavedCredentials();
+        }
       }
       return result;
     } catch (err) {
@@ -140,14 +150,18 @@ class _LoginPageState extends State<LoginPage> {
                     },
                   ),
                   const SizedBox(height: 10),
-                  CheckboxListTile(
-                    title: const Text("Recordar usuario y contraseña"),
-                    value: _saveCredentials,
-                    onChanged: (value) {
-                      setState(() {
-                        _saveCredentials = value ?? false;
-                      });
-                    },
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: _saveCredentials,
+                        onChanged: (value) {
+                          setState(() {
+                            _saveCredentials = value ?? false;
+                          });
+                        },
+                      ),
+                      const Text("Recordar usuario y contraseña"),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   Row(
