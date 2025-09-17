@@ -7,7 +7,7 @@ import 'package:loggy/loggy.dart';
 import 'central.dart';
 import 'core/app_theme.dart';
 
-import 'features/auth/data/datasources/remote/authentication_source_service.dart';
+import 'features/auth/data/datasources/remote/remote_authentication_source_service.dart';
 import 'features/auth/data/datasources/remote/i_authentication_source.dart';
 import 'features/auth/data/repositories/auth_repository.dart';
 import 'features/auth/domain/repositories/i_auth_repository.dart';
@@ -55,7 +55,13 @@ void main() {
 
   Get.put(http.Client(), tag: 'apiClient');
 
+  //Get.lazyPut<IAuthenticationSource>(
+  //  () => AuthenticationSourceService(),
+  //  fenix: true,
+  //);
+
   // Auth
+  //Get.put<IAuthenticationSource>(AuthenticationSourceService());
   Get.put<IAuthenticationSource>(LocalAuthenticationSourceService());
   Get.put<IAuthRepository>(AuthRepository(Get.find()));
   Get.put(AuthenticationUseCase(Get.find()));
