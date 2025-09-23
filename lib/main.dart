@@ -56,6 +56,11 @@ void main() {
 
   Get.put(http.Client(), tag: 'apiClient');
 
+  //Get.lazyPut<IAuthenticationSource>(
+  //  () => AuthenticationSourceService(),
+  //  fenix: true,
+  //);
+
   // Auth
   Get.put<IAuthenticationSource>(AuthenticationSourceServiceRoble());
   Get.put<IAuthRepository>(AuthRepository(Get.find()));
