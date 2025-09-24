@@ -14,7 +14,7 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
   String token = '';
   String refreshtoken = '';
   final String baseUrl =
-      'https://roble-api.openlab.uninorte.edu.co/auth/movil_grupo_3_27b270426b';
+      'https://roble-api.openlab.uninorte.edu.co/auth/grupo3_e9c5902986';
 
   AuthenticationSourceServiceRoble({http.Client? client})
     : httpClient = client ?? http.Client();
@@ -55,7 +55,7 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
   @override
   Future<bool> signUp(AuthenticationUser user) async {
     final response = await http.post(
-      Uri.parse("$baseUrl/signup"),
+      Uri.parse("$baseUrl/signup-direct"),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
