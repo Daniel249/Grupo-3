@@ -13,8 +13,10 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
   final http.Client httpClient;
   String token = '';
   String refreshtoken = '';
+  // daniel's       'https://roble-api.openlab.uninorte.edu.co/auth/movil_grupo_3_27b270426b';
+  // roble's        'https://roble-api.openlab.uninorte.edu.co/auth/grupo3_e9c5902986'
   final String baseUrl =
-      'https://roble-api.openlab.uninorte.edu.co/auth/grupo3_e9c5902986';
+      'https://roble-api.openlab.uninorte.edu.co/auth/grupo_4_2532247339';
 
   AuthenticationSourceServiceRoble({http.Client? client})
     : httpClient = client ?? http.Client();
@@ -72,8 +74,7 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
     } else {
       logError(response.body);
       final Map<String, dynamic> body = json.decode(response.body);
-      final List<dynamic> messages = body['message'];
-      final String errorMessage = messages.join(" ");
+      final String errorMessage = body['message'];
       logError(
         "signUp endpoint got error code ${response.statusCode} - $errorMessage",
       );
