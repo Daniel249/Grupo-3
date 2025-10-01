@@ -1,3 +1,4 @@
+import 'package:f_clean_template/features/auth/data/datasources/remote/authentication_source_service_Roble.dart';
 import 'package:loggy/loggy.dart';
 import '../../domain/models/course.dart';
 import 'package:http/http.dart' as http;
@@ -5,8 +6,10 @@ import 'package:http/http.dart' as http;
 import 'i_course_source.dart';
 
 class RemoteCourseSource implements ICourseSource {
+  String tokem = AuthenticationSourceServiceRoble().token;
   final http.Client httpClient;
-
+  final String baseUrl =
+      "https://roble-api.openlab.uninorte.edu.co/database/grupo3_e9c5902986/create-table";
   RemoteCourseSource(this.httpClient);
 
   @override
