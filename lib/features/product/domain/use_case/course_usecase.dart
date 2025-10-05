@@ -11,18 +11,19 @@ class CourseUseCase {
 
   Future<void> addCourse(
     String name,
-    String description,
+    String desc,
     List<String> students,
     String teacher,
-  ) async => await repository.addCourse(
-    Course(
-      id: Random().nextInt(10000),
+  ) async {
+    final newCourse = Course(
+      id: Random().nextInt(100000).toString(),
       name: name,
-      description: description,
+      description: desc,
       studentsNames: students,
       teacher: teacher,
-    ),
-  );
+    );
+    await repository.addCourse(newCourse);
+  }
 
   Future<void> updateCourse(Course user) async =>
       await repository.updateCourse(user);

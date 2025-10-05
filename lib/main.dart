@@ -1,4 +1,5 @@
 import 'package:f_clean_template/features/product/data/datasources/local/local_product_source.dart';
+import 'package:f_clean_template/features/product/data/datasources/remote_course_source.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -36,6 +37,8 @@ import 'features/product/domain/use_case/category_usecase.dart';
 import 'features/product/ui/controller/category_controller.dart';
 import 'dart:ui'; // for PlatformDispatcher
 import 'features/auth/data/datasources/local/local_authentication_source_service.dart';
+import 'core/i_local_preferences.dart';
+import 'core/local_preferences_impl.dart';
 
 void main() {
   // 🔹 Make Flutter print full stack traces instead of folding them
@@ -56,13 +59,20 @@ void main() {
 
   Get.put(http.Client(), tag: 'apiClient');
 
+  // Local Preferences
+  Get.put<ILocalPreferences>(LocalPreferencesShared());
   //Get.lazyPut<IAuthenticationSource>(
   //  () => AuthenticationSourceService(),
   //  fenix: true,
   //);
 
   // Auth
-  Get.put<IAuthenticationSource>(AuthenticationSourceServiceRoble());
+  Get.lazyPut<IAuthenticationSource>(
+    () => AuthenticationSourceServiceRoble(),
+    fenix: true,
+  );
+
+  //Get.put<IAuthenticationSource>(AuthenticationSourceServiceRoble());
   Get.put<IAuthRepository>(AuthRepository(Get.find()));
   Get.put(AuthenticationUseCase(Get.find()));
   Get.put(AuthenticationController(Get.find()));
@@ -77,10 +87,10 @@ void main() {
   Get.lazyPut(() => ProductController());
 
   // Course
-  //Get.put<IRemoteCourseSource>(
-  //  RemoteCourseSource(Get.find<http.Client>(tag: 'apiClient')),
-  //);
-  Get.put<ICourseSource>(LocalCourseSource());
+  Get.lazyPut<ICourseSource>(
+    () => RemoteCourseSource(Get.find<http.Client>(tag: 'apiClient')),
+  );
+  //Get.put<ICourseSource>(LocalCourseSource());
   Get.put<ICourseRepository>(CourseRepository(Get.find()));
   Get.put(CourseUseCase(Get.find()));
   Get.lazyPut(() => CourseController());

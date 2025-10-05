@@ -499,10 +499,20 @@ class _CategoriesTabState extends State<CategoriesTab> {
                         groupSizeController.text.isNotEmpty) {
                       final groupSize =
                           int.tryParse(groupSizeController.text) ?? 1;
+
+                      final courseId = int.tryParse(widget.course.id);
+
+                      if (courseId == null) {
+                        // Handle invalid course ID
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Invalid course ID')),
+                        );
+                        return;
+                      }
                       await _categoryController.addCategory(
                         nameController.text,
                         isRandom,
-                        widget.course.id,
+                        courseId,
                         groupSize, // Pass group size as second to last
                         [], // Empty groups list as last parameter
                       );
