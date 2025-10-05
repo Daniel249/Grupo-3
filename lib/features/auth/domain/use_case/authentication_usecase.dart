@@ -11,7 +11,11 @@ class AuthenticationUseCase {
 
   Future<bool> signUp(String email, String password) async =>
       await _repository.signUp(
-        AuthenticationUser(email: email, name: email, password: password),
+        AuthenticationUser(
+          email: email,
+          name: email.split('.')[0],
+          password: password,
+        ),
       );
 
   Future<bool> validate(String email, String validationCode) async =>

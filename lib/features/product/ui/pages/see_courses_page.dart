@@ -9,6 +9,9 @@ import '../../domain/models/course.dart';
 import 'package:f_clean_template/features/product/ui/pages/teacher_course_view.dart';
 import 'join_course_screen.dart';
 import 'student_course_detail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../../central.dart';
+import '../../../auth/ui/controller/authentication_controller.dart';
 
 class ListCoursePage extends StatefulWidget {
   final User user;
@@ -20,6 +23,7 @@ class ListCoursePage extends StatefulWidget {
 
 class _ListCoursePageState extends State<ListCoursePage> {
   late final CourseController _courseController;
+  late final AuthenticationController _authController;
   late final User _currentUser;
   List<Course> _filteredCourses = [];
   bool _isTeacherView = false; // Default to student view
@@ -28,6 +32,7 @@ class _ListCoursePageState extends State<ListCoursePage> {
   void initState() {
     super.initState();
     _courseController = Get.find<CourseController>();
+    _authController = Get.find<AuthenticationController>();
     _currentUser = widget.user; // Usa el user recibido, elimina el mockup
     _loadCourses();
   }
@@ -55,6 +60,30 @@ class _ListCoursePageState extends State<ListCoursePage> {
       _isTeacherView = teacherView;
     });
     if (flag) _loadCourses();
+  }
+
+  Future<void> _signOut() async {
+    try {
+      await _authController.logOut();
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('access_token');
+      await prefs.remove('refresh_token');
+      await prefs.remove('user_email');
+
+      Navigator.pop(context); // Close drawer
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const Central()),
+        (route) => false, // Remove all previous routes
+      );
+    } catch (e) {
+      Get.snackbar(
+        "Logout Error",
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   @override
@@ -114,6 +143,14 @@ class _ListCoursePageState extends State<ListCoursePage> {
               label: 'Settings',
               onTap: () {
                 // Get.to(() => const SettingsPage());
+              },
+            ),
+            const Divider(),
+            _drawerItem(
+              icon: Icons.logout,
+              label: 'Sign Out',
+              onTap: () async {
+                await _signOut();
               },
             ),
           ],

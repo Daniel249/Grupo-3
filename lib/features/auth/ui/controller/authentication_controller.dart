@@ -10,6 +10,12 @@ class AuthenticationController extends GetxController {
 
   AuthenticationController(this.authentication);
 
+  Future<bool> verifyToken() async {
+    bool rta = await authentication.validateToken();
+    logged.value = rta;
+    return rta;
+  }
+
   @override
   Future<void> onInit() async {
     super.onInit();

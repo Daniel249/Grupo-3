@@ -23,7 +23,29 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    _loadSavedCredentials();
+    _checkTokenAndLoadCredentials();
+  }
+
+  Future<void> _checkTokenAndLoadCredentials() async {
+    try {
+      // First verify token
+      final tokenValid = await authenticationController.verifyToken();
+      if (tokenValid) {
+        // If token is valid, check for saved email
+        final prefs = await SharedPreferences.getInstance();
+        final savedEmail = prefs.getString('user_email');
+        if (savedEmail != null && savedEmail.isNotEmpty) {
+          // Token is valid and email exists, return the email
+          Navigator.of(context).pop(savedEmail);
+          return;
+        }
+      }
+    } catch (e) {
+      logError('Token verification failed: $e');
+    }
+
+    // If token verification fails or no email found, load saved credentials for manual login
+    await _loadSavedCredentials();
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -53,6 +75,11 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.remove('saved_password');
   }
 
+  Future<void> _saveUserEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_email', email);
+  }
+
   Future<bool> _login(theEmail, thePassword) async {
     logInfo('_login $theEmail $thePassword');
     try {
@@ -61,6 +88,9 @@ class _LoginPageState extends State<LoginPage> {
         thePassword,
       );
       if (result) {
+        // Save user email before returning
+        await _saveUserEmail(theEmail);
+
         if (_saveCredentials) {
           await _saveCredentialsToPrefs(theEmail, thePassword);
         } else {

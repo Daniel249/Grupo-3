@@ -32,7 +32,7 @@ class _CentralState extends State<Central> {
   @override
   Widget build(BuildContext context) {
     if (_userEmail != null) {
-      final name = _userEmail!.split('@').first;
+      final name = _userEmail!.split('.').first.replaceAll('@', '');
       final user = User(name: name, id: _userEmail!);
       return ListCoursePage(user: user);
     } else {
