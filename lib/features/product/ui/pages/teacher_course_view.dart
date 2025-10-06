@@ -314,7 +314,7 @@ class _ActivitiesTabState extends State<ActivitiesTab> {
                 final activity = widget.course.activities![index];
                 return ListTile(
                   title: Text(activity.name),
-                  subtitle: Text(activity.category.name),
+                  subtitle: Text(activity.description),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
                     onPressed: () {

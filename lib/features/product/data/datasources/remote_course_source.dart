@@ -78,6 +78,7 @@ class RemoteCourseSource implements ICourseSource {
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
+    logInfo("Using token: $token");
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -121,13 +122,15 @@ class RemoteCourseSource implements ICourseSource {
     final uri = Uri.parse('$baseUrl/update');
 
     final headers = await _getHeaders();
-
+    logInfo("idValue is ${course.id}");
     final body = jsonEncode({
       "tableName": "Course",
-      "records": [course.toJson()],
+      "idColum": "_id",
+      "idValue": course.id,
+      "updates": course.toJsonNoId(),
     });
 
-    final response = await httpClient.post(uri, headers: headers, body: body);
+    final response = await httpClient.put(uri, headers: headers, body: body);
 
     if (response.statusCode == 200) {
       logInfo("Web service, Course updated successfully");
@@ -143,15 +146,15 @@ class RemoteCourseSource implements ICourseSource {
   Future<bool> deleteCourse(Course course) async {
     logInfo("Web service, Deleting course with id $course");
     final uri = Uri.parse('$baseUrl/delete');
+
     final headers = await _getHeaders();
     final body = jsonEncode({
-      "tableName": "Course",
-      "records": [
-        {"_id": course.id},
-      ],
+      'tableName': "Course",
+      'idColumn': '_id',
+      'idValue': course.id,
     });
 
-    final response = await httpClient.post(uri, headers: headers, body: body);
+    final response = await httpClient.delete(uri, headers: headers, body: body);
     if (response.statusCode == 200) {
       logInfo("Web service, Course deleted successfully");
     } else {

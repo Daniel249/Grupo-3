@@ -1,40 +1,40 @@
-import '../../../domain/models/product.dart';
-import '../i_remote_product_source.dart';
+import '../../../domain/models/activity.dart';
+import '../i_remote_activity_source.dart';
 
-class LocalProductSource implements IProductSource {
-  final List<Product> _products = <Product>[];
+class LocalActivitySource implements IActivitySource {
+  final List<Activity> _activities = <Activity>[];
 
-  LocalProductSource();
+  LocalActivitySource();
 
   @override
-  Future<bool> addProduct(Product product) {
-    product.id = DateTime.now().millisecondsSinceEpoch.toString();
-    _products.add(product);
+  Future<bool> addActivity(Activity activity) {
+    activity.id = DateTime.now().millisecondsSinceEpoch.toString();
+    _activities.add(activity);
     return Future.value(true);
   }
 
   @override
-  Future<bool> deleteProduct(Product product) {
-    _products.remove(product);
+  Future<bool> deleteActivity(Activity activity) {
+    _activities.remove(activity);
     return Future.value(true);
   }
 
   @override
-  Future<bool> deleteProducts() {
-    _products.clear();
+  Future<bool> deleteActivities() {
+    _activities.clear();
     return Future.value(true);
   }
 
   @override
-  Future<List<Product>> getProducts() {
-    return Future.value(_products);
+  Future<List<Activity>> getActivities() {
+    return Future.value(_activities);
   }
 
   @override
-  Future<bool> updateProduct(Product product) {
-    var index = _products.indexWhere((p) => p.id == product.id);
+  Future<bool> updateActivity(Activity activity) {
+    var index = _activities.indexWhere((a) => a.id == activity.id);
     if (index != -1) {
-      _products[index] = product;
+      _activities[index] = activity;
       return Future.value(true);
     }
     return Future.value(false);

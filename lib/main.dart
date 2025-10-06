@@ -1,4 +1,4 @@
-import 'package:f_clean_template/features/product/data/datasources/local/local_product_source.dart';
+import 'package:f_clean_template/features/product/data/datasources/remote_activity_source.dart';
 import 'package:f_clean_template/features/product/data/datasources/remote_course_source.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,27 +8,25 @@ import 'package:loggy/loggy.dart';
 import 'central.dart';
 import 'core/app_theme.dart';
 
-import 'features/auth/data/datasources/remote/authentication_source_service.dart';
 import 'features/auth/data/datasources/remote/authentication_source_service_roble.dart';
 import 'features/auth/data/datasources/remote/i_authentication_source.dart';
 import 'features/auth/data/repositories/auth_repository.dart';
 import 'features/auth/domain/repositories/i_auth_repository.dart';
 import 'features/auth/domain/use_case/authentication_usecase.dart';
 import 'features/auth/ui/controller/authentication_controller.dart';
-import 'features/product/data/datasources/i_remote_product_source.dart';
+import 'features/product/data/datasources/i_remote_activity_source.dart';
 //import 'features/product/data/datasources/remote_product_source.dart';
-import 'features/product/data/repositories/product_repository.dart';
-import 'features/product/domain/repositories/i_product_repository.dart';
+import 'features/product/data/repositories/activity_repository.dart';
+import 'features/product/domain/repositories/i_activity_repository.dart';
 import 'features/product/domain/repositories/i_course_repository.dart';
-import 'features/product/domain/use_case/product_usecase.dart';
-import 'features/product/ui/controller/product_controller.dart';
+import 'features/product/domain/use_case/activity_usecase.dart';
+import 'features/product/ui/controller/activity_controller.dart';
 //import 'features/product/data/datasources/i_remote_course_source.dart';
 //import 'features/product/data/datasources/remote_course_source.dart';
 import 'features/product/data/repositories/course_repository.dart';
 import 'features/product/domain/use_case/course_usecase.dart';
 import 'features/product/ui/controller/course_controller.dart';
 import 'features/product/data/datasources/i_course_source.dart';
-import 'features/product/data/datasources/local/local_course_source.dart';
 import 'features/product/data/datasources/local/local_category_source.dart';
 import 'features/product/data/datasources/i_category_source.dart';
 import 'features/product/data/repositories/category_repository.dart';
@@ -36,7 +34,6 @@ import 'features/product/domain/repositories/i_category_repository.dart';
 import 'features/product/domain/use_case/category_usecase.dart';
 import 'features/product/ui/controller/category_controller.dart';
 import 'dart:ui'; // for PlatformDispatcher
-import 'features/auth/data/datasources/local/local_authentication_source_service.dart';
 import 'core/i_local_preferences.dart';
 import 'core/local_preferences_impl.dart';
 
@@ -81,10 +78,12 @@ void main() {
   //Get.put<IProductSource>(
   //  RemoteProductSource(Get.find<http.Client>(tag: 'apiClient')),
   //);
-  Get.put<IProductSource>(LocalProductSource());
-  Get.put<IProductRepository>(ProductRepository(Get.find()));
-  Get.put(ProductUseCase(Get.find()));
-  Get.lazyPut(() => ProductController());
+  Get.put<IActivitySource>(
+    RemoteActivitySource(Get.find<http.Client>(tag: 'apiClient')),
+  );
+  Get.put<IActivityRepository>(ActivityRepository(Get.find()));
+  Get.put(ActivityUseCase(Get.find()));
+  Get.lazyPut(() => ActivityController());
 
   // Course
   Get.lazyPut<ICourseSource>(
