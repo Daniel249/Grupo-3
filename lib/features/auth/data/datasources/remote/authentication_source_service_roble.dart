@@ -110,11 +110,12 @@ class AuthenticationSourceServiceRoble implements IAuthenticationSource {
     } else {
       logError(response.body);
       final Map<String, dynamic> body = json.decode(response.body);
-      final String errorMessage = body['message'];
+      final List<dynamic> errorMessage = body['message'];
+      final String errorMessageStr = errorMessage.join(', ');
       logError(
-        "signUp endpoint got error code ${response.statusCode} - $errorMessage",
+        "signUp endpoint got error code ${response.statusCode} - $errorMessageStr",
       );
-      return Future.error('Error $errorMessage');
+      return Future.error('Error $errorMessageStr');
     }
   }
 
