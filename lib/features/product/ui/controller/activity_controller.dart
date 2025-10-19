@@ -12,41 +12,41 @@ class ActivityController extends GetxController {
 
   @override
   void onInit() {
-    getActivities();
+    //getActivities(w);
     super.onInit();
   }
 
-  getActivities() async {
+  getActivities(String? courseId) async {
     logInfo("ActivityController: Getting activities");
     isLoading.value = true;
-    _activities.value = await activityUseCase.getActivities();
+    _activities.value = await activityUseCase.getActivities(courseId);
     isLoading.value = false;
   }
 
-  addActivity(String name, String desc, String course) async {
+  addActivity(Activity activity) async {
     logInfo("ActivityController: Add activity");
-    await activityUseCase.addActivity(name, desc, course);
-    getActivities();
+    await activityUseCase.addActivity(activity);
+    getActivities(activity.course);
   }
 
   updateActivity(Activity activity) async {
     logInfo("ActivityController: Update activity");
     await activityUseCase.updateActivity(activity);
-    await getActivities();
+    await getActivities(activity.course);
   }
 
   void deleteActivity(Activity activity) async {
     logInfo("ActivityController: Delete activity");
 
     await activityUseCase.deleteActivity(activity);
-    await getActivities();
+    await getActivities(activity.course);
   }
 
   void deleteProducts() async {
     logInfo("ActivityController: Delete all activities");
     isLoading.value = true;
     await activityUseCase.deleteActivities();
-    await getActivities();
+    //await getActivities();
     isLoading.value = false;
   }
 }

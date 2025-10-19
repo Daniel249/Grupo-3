@@ -8,8 +8,8 @@ class ActivityRepository implements IActivityRepository {
   ActivityRepository(this.userSource);
 
   @override
-  Future<List<Activity>> getActivities() async =>
-      await userSource.getActivities();
+  Future<List<Activity>> getActivities(String? courseId) async =>
+      await userSource.getActivities(courseId);
 
   @override
   Future<bool> addActivity(Activity activity) async =>

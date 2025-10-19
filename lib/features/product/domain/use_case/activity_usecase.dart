@@ -6,27 +6,17 @@ class ActivityUseCase {
 
   ActivityUseCase(this.repository);
 
-  Future<List<Activity>> getActivities() async =>
-      await repository.getActivities();
+  Future<List<Activity>> getActivities(String? courseId) async =>
+      await repository.getActivities(courseId);
 
-  Future<void> addActivity(
-    String name,
-    String description,
-    String course,
-  ) async => await repository.addActivity(
-    Activity(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
-      description: description,
-      course: course,
-    ),
-  );
+  Future<void> addActivity(Activity activity) async =>
+      await repository.addActivity(activity);
 
-  Future<void> updateActivity(Activity user) async =>
-      await repository.updateActivity(user);
+  Future<void> updateActivity(Activity activity) async =>
+      await repository.updateActivity(activity);
 
-  Future<void> deleteActivity(Activity user) async =>
-      await repository.deleteActivity(user);
+  Future<void> deleteActivity(Activity activity) async =>
+      await repository.deleteActivity(activity);
 
   Future<void> deleteActivities() async => await repository.deleteActivities();
 }

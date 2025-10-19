@@ -1,7 +1,7 @@
 import '../models/activity.dart';
 
 abstract class IActivityRepository {
-  Future<List<Activity>> getActivities();
+  Future<List<Activity>> getActivities(String? courseId);
 
   Future<bool> addActivity(Activity p);
 

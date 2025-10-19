@@ -26,8 +26,13 @@ class LocalActivitySource implements IActivitySource {
   }
 
   @override
-  Future<List<Activity>> getActivities() {
-    return Future.value(_activities);
+  Future<List<Activity>> getActivities(String? courseId) {
+    if (courseId == null) {
+      return Future.value(_activities);
+    }
+    return Future.value(
+      _activities.where((activity) => activity.course == courseId).toList(),
+    );
   }
 
   @override

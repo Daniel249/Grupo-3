@@ -75,7 +75,9 @@ class RemoteCategorySource implements ICategorySource {
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '0',
       courseID: json['CourseID']?.toString(),
       name: (json['Name'] ?? '').toString(),
-      isRandomSelection: (json['IsRandom'] ?? false) == true,
+      isRandomSelection:
+          (json['IsRandom'] ?? false) == true ||
+          (json['IsRandomSelection'] ?? false) == true,
       groupSize: (json['CourseSize'] is int)
           ? json['CourseSize'] as int
           : int.tryParse('${json['CourseSize'] ?? 1}') ?? 1,
@@ -105,6 +107,7 @@ class RemoteCategorySource implements ICategorySource {
       'CourseID': category.courseID,
       'Name': category.name,
       'IsRandom': category.isRandomSelection,
+      //'IsRandomSelection': category.isRandomSelection,
       'CourseSize': category.groupSize,
       'GroupsId': [], // Groups handled separately
     };
@@ -116,7 +119,7 @@ class RemoteCategorySource implements ICategorySource {
     logInfo("Request body: $body");
     final response = await httpClient.post(uri, headers: headers, body: body);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    if (response.statusCode == 200) {
       logInfo("Web service, Category added successfully");
       return Future.value(true);
     } else {

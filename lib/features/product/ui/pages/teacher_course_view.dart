@@ -4,10 +4,12 @@ import 'package:get/get.dart';
 import '../../domain/models/course.dart';
 import '../../domain/models/user.dart';
 import '../../domain/models/category.dart';
-import 'see_categories_page.dart';
-import 'package:f_clean_template/features/product/ui/controller/course_controller.dart';
 import '../../domain/models/activity.dart';
+import 'see_categories_page.dart';
+import 'activity_groups_page.dart';
+import 'package:f_clean_template/features/product/ui/controller/course_controller.dart';
 import '../controller/category_controller.dart';
+import '../controller/activity_controller.dart';
 
 class TeacherCourseViewPage extends StatefulWidget {
   final Course course;
@@ -271,91 +273,76 @@ class ActivitiesTab extends StatefulWidget {
 }
 
 class _ActivitiesTabState extends State<ActivitiesTab> {
-  final CourseController _courseController = Get.find<CourseController>();
+  final ActivityController _activityController = Get.find<ActivityController>();
+  final CategoryController _categoryController = Get.find<CategoryController>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _activityController.getActivities(widget.course.id);
+      _categoryController.getCategories(widget.course.id);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: widget.course.activities?.length ?? 0,
-              itemBuilder: (context, index) {
-                final activity = widget.course.activities![index];
-                return ListTile(
-                  title: Text(activity.name),
-                  subtitle: Text(activity.description),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () async {
-                      // Modify widget.course directly
-                      widget.course.activities?.removeAt(index);
+      child: Obx(() {
+        final courseActivities = _activityController.activities
+            .where((activity) => activity.course == widget.course.id)
+            .toList();
 
-                      await _courseController.updateCourse(widget.course);
-                      await _courseController.getCourses();
+        if (_activityController.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-                      // Get fresh reference from controller
-                      final refreshedCourse = _courseController.courses
-                          .firstWhere((c) => c.id == widget.course.id);
+        if (courseActivities.isEmpty) {
+          return const Center(child: Text('No activities yet'));
+        }
 
-                      setState(() {
-                        widget.course.description = refreshedCourse.description;
-                        widget.course.studentsNames =
-                            refreshedCourse.studentsNames;
-                        widget.course.activities = refreshedCourse.activities;
-                        widget.course.categories = refreshedCourse.categories;
-                      });
-                    },
+        return ListView.builder(
+          itemCount: courseActivities.length,
+          itemBuilder: (context, index) {
+            final activity = courseActivities[index];
+            final category = _categoryController.categories.firstWhere(
+              (cat) => cat.id == activity.category,
+              orElse: () => Category(
+                id: null,
+                courseID: '',
+                name: 'Unknown',
+                isRandomSelection: false,
+                groupSize: 0,
+              ),
+            );
+            return ListTile(
+              title: Text(
+                '${activity.name} for ${category.name} category',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(activity.description),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () {
+                  _activityController.deleteActivity(activity);
+                },
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ActivityGroupsPage(
+                      activity: activity,
+                      category: category,
+                    ),
                   ),
                 );
               },
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _showAddActivityDialog(context);
-            },
-            child: const Text('Add Activity'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddActivityDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        final nameController = TextEditingController();
-        return AlertDialog(
-          title: const Text('Add Activity'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Activity Name'),
-              ),
-              // TODO: Add category dropdown
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Implement add activity
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
-          ],
+            );
+          },
         );
-      },
+      }),
     );
   }
 }
@@ -372,6 +359,7 @@ class CategoriesTab extends StatefulWidget {
 class _CategoriesTabState extends State<CategoriesTab> {
   //final CourseController _courseController = Get.find<CourseController>();
   final CategoryController _categoryController = Get.find<CategoryController>();
+  final ActivityController _activityController = Get.find<ActivityController>();
 
   List<Category> get _courseCategories => _categoryController.categories
       .where((category) => category.courseID == widget.course.id)
@@ -380,7 +368,10 @@ class _CategoriesTabState extends State<CategoriesTab> {
   @override
   void initState() {
     super.initState();
-    _categoryController.getCategories(widget.course.id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _categoryController.getCategories(widget.course.id);
+      _activityController.getActivities(widget.course.id);
+    });
   }
 
   @override
@@ -402,15 +393,28 @@ class _CategoriesTabState extends State<CategoriesTab> {
                           ? 'Random Selection'
                           : 'Self-Organized',
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () async {
-                        await _categoryController.deleteCategory(category);
-                        await _categoryController.getCategories(
-                          widget.course.id,
-                        );
-                        setState(() {});
-                      },
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.add),
+                          tooltip: 'Add Activity',
+                          onPressed: () {
+                            _showAddActivityDialog(context, category);
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete),
+                          tooltip: 'Delete Category',
+                          onPressed: () async {
+                            await _categoryController.deleteCategory(category);
+                            await _categoryController.getCategories(
+                              widget.course.id,
+                            );
+                            setState(() {});
+                          },
+                        ),
+                      ],
                     ),
                     onTap: () => _showCategoryPage(context, category),
                   );
@@ -499,6 +503,58 @@ class _CategoriesTabState extends State<CategoriesTab> {
       await _categoryController.getCategories(widget.course.id);
       setState(() {}); // Rebuild main tab
     }
+  }
+
+  void _showAddActivityDialog(BuildContext context, Category category) {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add Activity to ${category.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Activity Name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: 'Description'),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty &&
+                  descriptionController.text.isNotEmpty) {
+                final newActivity = Activity(
+                  id: null,
+                  name: nameController.text,
+                  description: descriptionController.text,
+                  course: widget.course.id,
+                  category: category.id!,
+                  results: {},
+                );
+
+                await _activityController.addActivity(newActivity);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showCategoryPage(BuildContext context, Category category) {
