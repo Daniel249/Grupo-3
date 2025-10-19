@@ -409,7 +409,7 @@ class _CategoriesTabState extends State<CategoriesTab> {
   @override
   void initState() {
     super.initState();
-    _categoryController.getCategories();
+    _categoryController.getCategories(widget.course.id);
   }
 
   @override
@@ -435,7 +435,9 @@ class _CategoriesTabState extends State<CategoriesTab> {
                       icon: const Icon(Icons.delete),
                       onPressed: () async {
                         await _categoryController.deleteCategory(category);
-                        await _categoryController.getCategories();
+                        await _categoryController.getCategories(
+                          widget.course.id,
+                        );
                         setState(() {});
                       },
                     ),
@@ -500,15 +502,7 @@ class _CategoriesTabState extends State<CategoriesTab> {
                       final groupSize =
                           int.tryParse(groupSizeController.text) ?? 1;
 
-                      final courseId = int.tryParse(widget.course.id);
-
-                      if (courseId == null) {
-                        // Handle invalid course ID
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Invalid course ID')),
-                        );
-                        return;
-                      }
+                      final courseId = widget.course.id;
                       await _categoryController.addCategory(
                         nameController.text,
                         isRandom,
@@ -531,7 +525,7 @@ class _CategoriesTabState extends State<CategoriesTab> {
       },
     );
     if (result == true) {
-      await _categoryController.getCategories();
+      await _categoryController.getCategories(widget.course.id);
       setState(() {}); // Rebuild main tab
     }
   }

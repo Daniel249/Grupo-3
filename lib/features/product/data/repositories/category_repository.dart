@@ -8,8 +8,8 @@ class CategoryRepository implements ICategoryRepository {
   CategoryRepository(this.remoteCategorySource);
 
   @override
-  Future<List<Category>> getCategories() =>
-      remoteCategorySource.getCategories();
+  Future<List<Category>> getCategories(String? courseId) =>
+      remoteCategorySource.getCategories(courseId);
 
   @override
   Future<bool> addCategory(Category category) =>

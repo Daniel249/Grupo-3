@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/category_controller.dart';
+import '../controller/group_controller.dart';
 import '../../domain/models/course.dart';
 import '../../domain/models/user.dart';
 import '../../domain/models/category.dart';
@@ -25,12 +26,14 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final CategoryController _categoryController = Get.find<CategoryController>();
+  final GroupController _groupController = Get.find<GroupController>();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _categoryController.getCategories();
+    _categoryController.getCategories(widget.course.id);
+    _groupController.getGroups();
   }
 
   @override
@@ -92,6 +95,7 @@ class _GroupsTab extends StatefulWidget {
 
 class _GroupsTabState extends State<_GroupsTab> {
   final CategoryController _categoryController = Get.find<CategoryController>();
+  final GroupController _groupController = Get.find<GroupController>();
 
   @override
   Widget build(BuildContext context) {
@@ -100,42 +104,49 @@ class _GroupsTabState extends State<_GroupsTab> {
           .where((cat) => cat.courseID == widget.course.id)
           .toList();
 
-      final userGroups = <Map<String, dynamic>>[];
-      for (final cat in categories) {
-        for (int i = 0; i < cat.groups.length; i++) {
-          final group = cat.groups[i];
-          if (group.students.contains(widget.currentUser.name)) {
-            userGroups.add({
-              'category': cat,
-              'group': group,
-              'groupNumber': i + 1,
-            });
-          }
-        }
-      }
+      // Filter groups that contain the current user
+      final userGroups = _groupController.groups.where((group) {
+        return group.studentsNames.contains(widget.currentUser.name);
+      }).toList();
+
+      // Map groups to their display data with category names
+      final displayGroups = userGroups.map((group) {
+        // Find the category for this group
+        final category = categories.firstWhereOrNull(
+          (cat) => cat.id == group.categoryId,
+        );
+        final categoryName = category?.name ?? 'Unknown';
+
+        return {
+          'group': group,
+          'category': category,
+          'displayName': '$categoryName - ${group.name}',
+        };
+      }).toList();
 
       return Column(
         children: [
           Expanded(
-            child: userGroups.isEmpty
+            child: displayGroups.isEmpty
                 ? const Center(child: Text('No perteneces a ningún grupo.'))
                 : ListView.builder(
-                    itemCount: userGroups.length,
+                    itemCount: displayGroups.length,
                     itemBuilder: (context, index) {
-                      final cat = userGroups[index]['category'] as Category;
-                      final group = userGroups[index]['group'] as Group;
-                      final groupNumber = userGroups[index]['groupNumber'];
-                      final groupName = '${cat.name}-$groupNumber';
+                      final data = displayGroups[index];
+                      final group = data['group'] as Group;
+                      final category = data['category'] as Category?;
+                      final displayName = data['displayName'] as String;
+
                       return ListTile(
-                        title: Text(groupName),
+                        title: Text(displayName),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (_) => GroupDetailScreen(
-                                groupName: groupName,
+                                categoryName: category?.name ?? 'Unknown',
                                 group: group,
-                                category: cat,
+                                category: category,
                                 currentUser: widget.currentUser,
                                 course: widget.course,
                               ),
@@ -161,7 +172,8 @@ class _GroupsTabState extends State<_GroupsTab> {
                     ),
                   ),
                 );
-                await _categoryController.getCategories();
+                await _groupController.getGroups();
+                await _categoryController.getCategories(widget.course.id);
                 if (mounted) setState(() {});
               },
             ),
@@ -173,17 +185,17 @@ class _GroupsTabState extends State<_GroupsTab> {
 }
 
 class GroupDetailScreen extends StatelessWidget {
-  final String groupName;
+  final String categoryName;
   final Group group;
-  final Category category;
+  final Category? category;
   final User currentUser;
   final Course course;
 
   const GroupDetailScreen({
     super.key,
-    required this.groupName,
+    required this.categoryName,
     required this.group,
-    required this.category,
+    this.category,
     required this.currentUser,
     required this.course,
   });
@@ -191,7 +203,7 @@ class GroupDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(groupName)),
+      appBar: AppBar(title: Text('$categoryName - ${group.name}')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -201,7 +213,7 @@ class GroupDetailScreen extends StatelessWidget {
               'Integrantes:',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            ...group.students.map((s) => ListTile(title: Text(s))),
+            ...group.studentsNames.map((s) => ListTile(title: Text(s))),
           ],
         ),
       ),
@@ -215,6 +227,7 @@ class JoinGroupScreen extends StatelessWidget {
   JoinGroupScreen({required this.course, required this.currentUser});
 
   final CategoryController _categoryController = Get.find<CategoryController>();
+  final GroupController _groupController = Get.find<GroupController>();
 
   @override
   Widget build(BuildContext context) {
@@ -225,57 +238,56 @@ class JoinGroupScreen extends StatelessWidget {
             .where((cat) => cat.courseID == course.id)
             .toList();
 
-        // Encuentra los grupos donde el usuario YA está
-        final Set<String> userGroupKeys = {};
-        for (final cat in categories) {
-          for (int i = 0; i < cat.groups.length; i++) {
-            final group = cat.groups[i];
-            if (group.students.contains(currentUser.name)) {
-              userGroupKeys.add('${cat.id}-$i');
-            }
-          }
-        }
+        // Get all groups for this course through GroupController
+        final courseGroups = _groupController.groups.where((group) {
+          // Check if the group's category belongs to this course
+          final category = categories.firstWhereOrNull(
+            (cat) => cat.id == group.categoryId,
+          );
+          return category != null;
+        }).toList();
 
-        // Lista de todos los grupos donde NO está el usuario
-        final availableGroups = <Map<String, dynamic>>[];
-        for (final cat in categories) {
-          for (int i = 0; i < cat.groups.length; i++) {
-            final group = cat.groups[i];
-            if (!group.students.contains(currentUser.name) &&
-                !userGroupKeys.contains('${cat.id}-$i')) {
-              availableGroups.add({
-                'category': cat,
-                'group': group,
-                'groupNumber': i + 1,
-              });
-            }
-          }
-        }
+        // Filter out groups where user already is a member
+        final availableGroups = courseGroups.where((group) {
+          return !group.studentsNames.contains(currentUser.name);
+        }).toList();
 
-        if (availableGroups.isEmpty) {
+        // Map groups to display data with category names
+        final displayGroups = availableGroups.map((group) {
+          final category = categories.firstWhereOrNull(
+            (cat) => cat.id == group.categoryId,
+          );
+          return {
+            'group': group,
+            'category': category,
+            'displayName': '${category?.name ?? 'Unknown'} - ${group.name}',
+          };
+        }).toList();
+
+        if (displayGroups.isEmpty) {
           return const Center(child: Text('No hay grupos disponibles.'));
         }
 
         return ListView.builder(
-          itemCount: availableGroups.length,
+          itemCount: displayGroups.length,
           itemBuilder: (context, index) {
-            final cat = availableGroups[index]['category'] as Category;
-            final group = availableGroups[index]['group'] as Group;
-            final groupNumber = availableGroups[index]['groupNumber'];
-            final groupName = '${cat.name}-$groupNumber';
+            final data = displayGroups[index];
+            final group = data['group'] as Group;
+            final displayName = data['displayName'] as String;
+
             return ListTile(
-              title: Text(groupName),
+              title: Text(displayName),
               onTap: () async {
                 final joined = await showDialog<bool>(
                   context: context,
                   builder: (_) => AlertDialog(
-                    title: Text('Unirse a $groupName'),
+                    title: Text('Unirse a $displayName'),
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Integrantes:'),
-                        ...group.students.map((s) => Text(s)),
+                        ...group.studentsNames.map((s) => Text(s)),
                       ],
                     ),
                     actions: [
@@ -285,10 +297,10 @@ class JoinGroupScreen extends StatelessWidget {
                       ),
                       ElevatedButton(
                         onPressed: () async {
-                          // Lógica para agregarse al grupo
-                          if (!group.students.contains(currentUser.name)) {
-                            group.students.add(currentUser.name);
-                            await _categoryController.updateCategory(cat);
+                          // Add user to the group
+                          if (!group.studentsNames.contains(currentUser.name)) {
+                            group.studentsNames.add(currentUser.name);
+                            await _groupController.updateGroup(group);
                           }
                           Navigator.pop(context, true); // Cierra el diálogo
                         },

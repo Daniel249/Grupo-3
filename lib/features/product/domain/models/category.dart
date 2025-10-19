@@ -1,19 +1,17 @@
-import 'group.dart';
+//import 'group.dart';
 
 class Category {
   final String name;
-  final List<Group> groups;
   final bool isRandomSelection;
-  final int? id;
-  final int? courseID;
+  final String? id;
+  final String? courseID;
   final int groupSize; // New field
 
   Category({
-    required this.id,
     required this.courseID,
     required this.name,
-    required this.groups,
     required this.isRandomSelection,
     required this.groupSize, // Add to constructor
+    this.id = '0', // Initialize id to '0' by default
   });
 }

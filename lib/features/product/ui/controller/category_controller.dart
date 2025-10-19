@@ -9,18 +9,18 @@ class CategoryController extends GetxController {
   final RxBool isLoading = false.obs;
   List<Category> get categories => _categories;
 
-  Future<void> getCategories() async {
+  Future<void> getCategories(String? courseId) async {
     isLoading.value = true;
-    _categories.value = await categoryUseCase.getCategories();
+    _categories.value = await categoryUseCase.getCategories(courseId);
     isLoading.value = false;
   }
 
   Future<void> addCategory(
     String name,
     bool isRandomSelection,
-    int courseID,
+    String courseID,
     int groupSize,
-    List<Group> groups,
+    List<String> groups,
   ) async {
     await categoryUseCase.addCategory(
       name,
@@ -29,16 +29,16 @@ class CategoryController extends GetxController {
       groupSize,
       groups,
     );
-    await getCategories();
+    await getCategories(courseID);
   }
 
   Future<void> updateCategory(Category category) async {
     await categoryUseCase.updateCategory(category);
-    await getCategories();
+    await getCategories(category.courseID);
   }
 
   Future<void> deleteCategory(Category category) async {
     await categoryUseCase.deleteCategory(category);
-    await getCategories();
+    await getCategories(category.courseID);
   }
 }

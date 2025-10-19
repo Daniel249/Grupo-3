@@ -8,23 +8,21 @@ class CategoryUseCase {
 
   CategoryUseCase(this.repository);
 
-  Future<List<Category>> getCategories() async =>
-      await repository.getCategories();
+  Future<List<Category>> getCategories(String? courseId) async =>
+      await repository.getCategories(courseId);
 
   Future<void> addCategory(
     String name,
     bool isRandomSelection,
-    int courseID,
+    String courseID,
     int groupSize,
-    List<Group> groups,
+    List<String> groups,
   ) async => await repository.addCategory(
     Category(
-      id: Random().nextInt(10000),
       name: name,
       isRandomSelection: isRandomSelection,
       courseID: courseID,
       groupSize: groupSize,
-      groups: groups,
     ),
   );
 

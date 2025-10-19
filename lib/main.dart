@@ -33,9 +33,16 @@ import 'features/product/data/repositories/category_repository.dart';
 import 'features/product/domain/repositories/i_category_repository.dart';
 import 'features/product/domain/use_case/category_usecase.dart';
 import 'features/product/ui/controller/category_controller.dart';
+import 'features/product/data/datasources/i_group_source.dart';
+import 'features/product/data/datasources/remote_group_source.dart';
+import 'features/product/data/repositories/group_repository.dart';
+import 'features/product/domain/repositories/i_group_repository.dart';
+import 'features/product/domain/usecases/group_use_case.dart';
+import 'features/product/ui/controller/group_controller.dart';
 import 'dart:ui'; // for PlatformDispatcher
 import 'core/i_local_preferences.dart';
 import 'core/local_preferences_impl.dart';
+import 'features/product/data/datasources/remote_category_source.dart';
 
 void main() {
   // 🔹 Make Flutter print full stack traces instead of folding them
@@ -95,11 +102,21 @@ void main() {
   Get.lazyPut(() => CourseController());
 
   // Category
-  Get.put<ICategorySource>(LocalCategorySource());
-  // or for remote: Get.put<ICategorySource>(RemoteCategorySource(Get.find<http.Client>(tag: 'apiClient')));
+  //Get.put<ICategorySource>(LocalCategorySource());
+  Get.put<ICategorySource>(
+    RemoteCategorySource(Get.find<http.Client>(tag: 'apiClient')),
+  );
   Get.put<ICategoryRepository>(CategoryRepository(Get.find()));
   Get.put(CategoryUseCase(Get.find()));
   Get.lazyPut(() => CategoryController());
+
+  // Group dependencies
+  Get.put<IGroupSource>(
+    RemoteGroupSource(Get.find<http.Client>(tag: 'apiClient')),
+  );
+  Get.put<IGroupRepository>(GroupRepository(Get.find()));
+  Get.put(GroupUseCase(Get.find()));
+  Get.lazyPut(() => GroupController(Get.find()));
 
   runApp(const MyApp());
 }

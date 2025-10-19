@@ -1,11 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../domain/models/category.dart';
 import '../../domain/models/group.dart';
+import '../controller/group_controller.dart';
 
-class CategoryPage extends StatelessWidget {
+class CategoryPage extends StatefulWidget {
   final Category category;
 
   const CategoryPage({super.key, required this.category});
+
+  @override
+  State<CategoryPage> createState() => _CategoryPageState();
+}
+
+class _CategoryPageState extends State<CategoryPage> {
+  final GroupController _groupController = Get.find<GroupController>();
+  List<Group> _filteredGroups = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGroups();
+  }
+
+  Future<void> _loadGroups() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    await _groupController.getGroups();
+
+    // Filter groups based on matching categoryId to this category's id
+    final filteredGroups = _groupController.groups
+        .where((group) => group.categoryId == widget.category.id)
+        .toList();
+
+    setState(() {
+      _filteredGroups = filteredGroups;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +50,7 @@ class CategoryPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(category.name),
+        title: Text(widget.category.name),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -23,7 +58,7 @@ class CategoryPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              category.isRandomSelection
+              widget.category.isRandomSelection
                   ? 'Random Selection'
                   : 'Self-Organized',
               style: Theme.of(context).textTheme.titleMedium,
@@ -31,16 +66,18 @@ class CategoryPage extends StatelessWidget {
             const SizedBox(height: 16),
             Text('Groups', style: Theme.of(context).textTheme.titleLarge),
             Expanded(
-              child: ListView.builder(
-                itemCount: category.groups.length,
-                itemBuilder: (context, index) {
-                  final group = category.groups[index];
-                  return ListTile(
-                    title: Text(group.name),
-                    onTap: () => _showGroupStudents(context, group),
-                  );
-                },
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      itemCount: _filteredGroups.length,
+                      itemBuilder: (context, index) {
+                        final group = _filteredGroups[index];
+                        return ListTile(
+                          title: Text(group.name),
+                          onTap: () => _showGroupStudents(context, group),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -57,9 +94,9 @@ class CategoryPage extends StatelessWidget {
           width: double.maxFinite,
           child: ListView.builder(
             shrinkWrap: true,
-            itemCount: group.students.length,
+            itemCount: group.studentsNames.length,
             itemBuilder: (context, index) {
-              return ListTile(title: Text(group.students[index]));
+              return ListTile(title: Text(group.studentsNames[index]));
             },
           ),
         ),

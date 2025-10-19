@@ -1,7 +1,13 @@
 class Group {
   final String name;
-  final List<String> students;
-  final int id;
+  final List<String> studentsNames;
+  final String id;
+  final String? categoryId;
 
-  Group({required this.name, required this.students, this.id = 0});
+  Group({
+    required this.name,
+    required this.studentsNames,
+    required this.id,
+    this.categoryId,
+  });
 }

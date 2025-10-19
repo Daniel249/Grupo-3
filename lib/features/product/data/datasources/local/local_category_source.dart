@@ -9,37 +9,32 @@ class LocalCategorySource implements ICategorySource {
     // Initial dummy data
     _categories.addAll([
       Category(
-        id: 1,
+        id: '1',
         name: 'Category 1',
-        courseID: 1,
+        courseID: '1',
         groupSize: 3,
-        groups: [Group(id: 1, name: 'Group 1', students: <String>[])],
         isRandomSelection: false,
       ),
       Category(
-        id: 2,
+        id: '2',
         name: 'Category 2',
-        courseID: 1,
+        courseID: '1',
         groupSize: 3,
-        groups: [Group(id: 2, name: 'Group 2', students: <String>[])],
         isRandomSelection: true,
       ),
       Category(
-        id: 3,
+        id: '3',
         name: 'Category 3',
-        courseID: 2,
+        courseID: '2',
         groupSize: 3,
-        groups: [
-          Group(id: 2, name: 'Group 2', students: ["Alice", "Bob"]),
-          Group(id: 3, name: 'Group 1', students: ["Charlie"]),
-        ],
         isRandomSelection: true,
       ),
     ]);
   }
 
   @override
-  Future<List<Category>> getCategories() => Future.value(_categories);
+  Future<List<Category>> getCategories(String? courseId) =>
+      Future.value(_categories);
 
   @override
   Future<bool> addCategory(Category category) async {
