@@ -101,20 +101,15 @@ class _DescriptionTabState extends State<DescriptionTab> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              final updatedCourse = Course(
-                id: widget.course.id,
-                name: widget.course.name,
-                description: descriptionController.text,
-                studentsNames: widget.course.studentsNames,
-                teacher: widget.course.teacher,
-                activities: widget.course.activities,
-                categories: widget.course.categories,
-              );
-              _courseController.updateCourse(updatedCourse);
-              setState(() {
-                widget.course.description = descriptionController.text;
-              });
+            onPressed: () async {
+              // Modify widget.course directly
+              widget.course.description = descriptionController.text;
+
+              await _courseController.updateCourse(widget.course);
+              await _courseController.getCourses();
+
+              setState(() {}); // Just rebuild to show updated data
+
               Navigator.pop(context);
             },
             child: const Text('Update'),
@@ -144,26 +139,16 @@ class _DescriptionTabState extends State<DescriptionTab> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (studentController.text.isNotEmpty) {
-                final List<String> updatedStudents = [
-                  ...widget.course.studentsNames,
-                ];
-                updatedStudents.add(studentController.text);
+                // Modify widget.course directly
+                widget.course.studentsNames.add(studentController.text);
 
-                final updatedCourse = Course(
-                  id: widget.course.id,
-                  name: widget.course.name,
-                  description: widget.course.description,
-                  studentsNames: updatedStudents,
-                  teacher: widget.course.teacher,
-                  activities: widget.course.activities,
-                  categories: widget.course.categories,
-                );
-                _courseController.updateCourse(updatedCourse);
-                setState(() {
-                  widget.course.studentsNames.add(studentController.text);
-                });
+                await _courseController.updateCourse(widget.course);
+                await _courseController.getCourses();
+
+                setState(() {}); // Just rebuild to show updated data
+
                 Navigator.pop(context);
               }
             },
@@ -187,12 +172,10 @@ class _DescriptionTabState extends State<DescriptionTab> {
           const SizedBox(height: 16),
           const Text('Students'),
           const SizedBox(height: 8),
-          // Student list in scrollable container
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // List of students (not scrollable itself)
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -202,31 +185,21 @@ class _DescriptionTabState extends State<DescriptionTab> {
                         title: Text(widget.course.studentsNames[index]),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
-                          onPressed: () {
-                            final List<String> updatedStudents = [
-                              ...widget.course.studentsNames,
-                            ];
-                            updatedStudents.removeAt(index);
+                          onPressed: () async {
+                            // Modify widget.course directly
+                            widget.course.studentsNames.removeAt(index);
 
-                            final updatedCourse = Course(
-                              id: widget.course.id,
-                              name: widget.course.name,
-                              description: widget.course.description,
-                              studentsNames: updatedStudents,
-                              teacher: widget.course.teacher,
-                              activities: widget.course.activities,
-                              categories: widget.course.categories,
-                            );
-                            _courseController.updateCourse(updatedCourse);
-                            setState(() {
-                              widget.course.studentsNames.removeAt(index);
-                            });
+                            await _courseController.updateCourse(widget.course);
+                            await _courseController.getCourses();
+
+                            setState(
+                              () {},
+                            ); // Just rebuild to show updated data
                           },
                         ),
                       );
                     },
                   ),
-                  // Add student button follows immediately after list
                   ElevatedButton(
                     onPressed: () => _showAddStudentDialog(context),
                     child: const Text('Add Student'),
@@ -235,7 +208,6 @@ class _DescriptionTabState extends State<DescriptionTab> {
               ),
             ),
           ),
-          // Bottom buttons stay fixed
           const SizedBox(height: 16),
           Row(
             children: [
@@ -273,8 +245,8 @@ class _DescriptionTabState extends State<DescriptionTab> {
                     );
 
                     if (confirmed ?? false) {
-                      _courseController.deleteCourse(widget.course);
-                      Navigator.pop(context); // Return to courses list
+                      await _courseController.deleteCourse(widget.course);
+                      Navigator.pop(context);
                     }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -317,24 +289,23 @@ class _ActivitiesTabState extends State<ActivitiesTab> {
                   subtitle: Text(activity.description),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete),
-                    onPressed: () {
-                      final List<Activity> updatedActivities = [
-                        ...widget.course.activities ?? [],
-                      ];
-                      updatedActivities.removeAt(index);
+                    onPressed: () async {
+                      // Modify widget.course directly
+                      widget.course.activities?.removeAt(index);
 
-                      final updatedCourse = Course(
-                        id: widget.course.id,
-                        name: widget.course.name,
-                        description: widget.course.description,
-                        studentsNames: widget.course.studentsNames,
-                        teacher: widget.course.teacher,
-                        activities: updatedActivities,
-                        categories: widget.course.categories,
-                      );
-                      _courseController.updateCourse(updatedCourse);
+                      await _courseController.updateCourse(widget.course);
+                      await _courseController.getCourses();
+
+                      // Get fresh reference from controller
+                      final refreshedCourse = _courseController.courses
+                          .firstWhere((c) => c.id == widget.course.id);
+
                       setState(() {
-                        widget.course.activities?.removeAt(index);
+                        widget.course.description = refreshedCourse.description;
+                        widget.course.studentsNames =
+                            refreshedCourse.studentsNames;
+                        widget.course.activities = refreshedCourse.activities;
+                        widget.course.categories = refreshedCourse.categories;
                       });
                     },
                   ),

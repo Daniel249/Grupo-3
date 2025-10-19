@@ -78,7 +78,7 @@ class RemoteCourseSource implements ICourseSource {
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    logInfo("Using token: $token");
+    //logInfo("Using token: $token");
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -136,7 +136,9 @@ class RemoteCourseSource implements ICourseSource {
       logInfo("Web service, Course updated successfully");
       return Future.value(true);
     } else {
-      logError("Web service, Error updating course: ${response.statusCode}");
+      logError(
+        "Web service, Error updating course: ${response.statusCode}, ${response.body}",
+      );
     }
 
     return Future.value(false);
@@ -158,7 +160,9 @@ class RemoteCourseSource implements ICourseSource {
     if (response.statusCode == 200) {
       logInfo("Web service, Course deleted successfully");
     } else {
-      logError("Web service, Error deleting course: ${response.statusCode}");
+      logError(
+        "Web service, Error deleting course: ${response.statusCode} - ${response.body}",
+      );
     }
     return Future.value(true);
   }

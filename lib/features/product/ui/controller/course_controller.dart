@@ -40,7 +40,7 @@ class CourseController extends GetxController {
     await getCourses();
   }
 
-  void deleteCourse(Course p) async {
+  Future<void> deleteCourse(Course p) async {
     logInfo("ProductController: Delete product");
 
     await courseUseCase.deleteCourse(p);

@@ -9,7 +9,7 @@ class CategoryController extends GetxController {
   final RxBool isLoading = false.obs;
   List<Category> get categories => _categories;
 
-  Future<void> getCategories(String? courseId) async {
+  getCategories(String? courseId) async {
     isLoading.value = true;
     _categories.value = await categoryUseCase.getCategories(courseId);
     isLoading.value = false;

@@ -24,7 +24,7 @@ class RemoteCategorySource implements ICategorySource {
     try {
       final headers = await _getHeaders();
       final response = await httpClient.get(
-        Uri.parse('$baseUrl/read?tableName=Categorias&CourseID=$courseId'),
+        Uri.parse('$baseUrl/read?tableName=Category&CourseID=$courseId'),
         headers: headers,
       );
 
@@ -35,8 +35,8 @@ class RemoteCategorySource implements ICategorySource {
         if (decodedJson is List) {
           categoriesData = decodedJson;
         } else if (decodedJson is Map<String, dynamic>) {
-          if (decodedJson.containsKey('categories')) {
-            categoriesData = decodedJson['categories'] as List<dynamic>;
+          if (decodedJson.containsKey('Category')) {
+            categoriesData = decodedJson['Category'] as List<dynamic>;
           } else if (decodedJson.containsKey('data')) {
             categoriesData = decodedJson['data'] as List<dynamic>;
           } else {
@@ -48,13 +48,13 @@ class RemoteCategorySource implements ICategorySource {
           );
           return [];
         }
-
-        return categoriesData
+        final List<Category> retCategories = categoriesData
             .map(
               (categoryJson) =>
                   _parseCategoryFromJson(categoryJson as Map<String, dynamic>),
             )
             .toList();
+        return retCategories;
       } else if (response.statusCode == 401) {
         logError("Authentication failed. Token may be expired or invalid.");
         throw Exception('Authentication required');
@@ -73,19 +73,19 @@ class RemoteCategorySource implements ICategorySource {
   Category _parseCategoryFromJson(Map<String, dynamic> json) {
     return Category(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '0',
-      courseID: json['courseID']?.toString(),
-      name: (json['name'] ?? '').toString(),
-      isRandomSelection: (json['isRandomSelection'] ?? false) == true,
-      groupSize: (json['groupSize'] is int)
-          ? json['groupSize'] as int
-          : int.tryParse('${json['groupSize'] ?? 1}') ?? 1,
+      courseID: json['CourseID']?.toString(),
+      name: (json['Name'] ?? '').toString(),
+      isRandomSelection: (json['IsRandom'] ?? false) == true,
+      groupSize: (json['CourseSize'] is int)
+          ? json['CourseSize'] as int
+          : int.tryParse('${json['CourseSize'] ?? 1}') ?? 1,
     );
   }
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    logInfo("Using token: $token");
+    //logInfo("Using token: $token");
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -102,21 +102,21 @@ class RemoteCategorySource implements ICategorySource {
 
     // Convert category to JSON without groups (they're in separate table)
     final categoryJson = {
-      'courseID': category.courseID,
-      'name': category.name,
-      'isRandomSelection': category.isRandomSelection,
-      'groupSize': category.groupSize,
-      //'groups': [], // Groups handled separately
+      'CourseID': category.courseID,
+      'Name': category.name,
+      'IsRandom': category.isRandomSelection,
+      'CourseSize': category.groupSize,
+      'GroupsId': [], // Groups handled separately
     };
 
     final body = jsonEncode({
-      "tableName": "Categories",
+      "tableName": "Category",
       "records": [categoryJson],
     });
-
+    logInfo("Request body: $body");
     final response = await httpClient.post(uri, headers: headers, body: body);
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       logInfo("Web service, Category added successfully");
       return Future.value(true);
     } else {
@@ -136,16 +136,16 @@ class RemoteCategorySource implements ICategorySource {
 
     // Convert category to JSON without groups
     final categoryJson = {
-      'courseID': category.courseID,
-      'name': category.name,
-      'isRandomSelection': category.isRandomSelection,
-      'groupSize': category.groupSize,
+      'CourseID': category.courseID,
+      'Name': category.name,
+      'IsRandomSelection': category.isRandomSelection ? 1 : 0,
+      'CourseSize': category.groupSize,
       // No groups field - they're stored separately
     };
 
     final body = jsonEncode({
-      "tableName": "Categories",
-      "idColum": "_id",
+      "tableName": "Category",
+      "idColumn": "_id",
       "idValue": category.id,
       "updates": categoryJson,
     });
@@ -171,7 +171,7 @@ class RemoteCategorySource implements ICategorySource {
     final headers = await _getHeaders();
 
     final body = jsonEncode({
-      'tableName': "Categories",
+      'tableName': "Category",
       'idColumn': '_id',
       'idValue': category.id,
     });
