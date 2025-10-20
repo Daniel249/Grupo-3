@@ -120,15 +120,19 @@ class RemoteCourseSource implements ICourseSource {
     logInfo("Web service, Updating course $course");
 
     final uri = Uri.parse('$baseUrl/update');
-
     final headers = await _getHeaders();
-    logInfo("idValue is ${course.id}");
+
+    final courseJson = course.toJsonNoId();
+    logInfo("Course JSON being sent: $courseJson"); // Add this line
+
     final body = jsonEncode({
       "tableName": "Course",
       "idColum": "_id",
       "idValue": course.id,
-      "updates": course.toJsonNoId(),
+      "updates": courseJson,
     });
+
+    logInfo("Full request body: $body"); // Add this line
 
     final response = await httpClient.put(uri, headers: headers, body: body);
 

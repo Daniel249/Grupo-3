@@ -76,6 +76,15 @@ class DescriptionTab extends StatefulWidget {
 
 class _DescriptionTabState extends State<DescriptionTab> {
   final CourseController _courseController = Get.find<CourseController>();
+  final ActivityController _activityController = Get.find<ActivityController>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _activityController.getActivities(widget.course.id);
+    });
+  }
 
   void _showUpdateDescriptionDialog(BuildContext context) {
     final descriptionController = TextEditingController(
@@ -183,8 +192,66 @@ class _DescriptionTabState extends State<DescriptionTab> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: widget.course.studentsNames.length,
                     itemBuilder: (context, index) {
+                      final studentName = widget.course.studentsNames[index];
+
                       return ListTile(
-                        title: Text(widget.course.studentsNames[index]),
+                        title: Text(studentName),
+                        subtitle: Obx(() {
+                          // Access the observable to make Obx track it
+                          final activities = _activityController.activities;
+
+                          // Calculate average inline to ensure reactivity
+                          final courseActivities = activities
+                              .where(
+                                (activity) =>
+                                    activity.course == widget.course.id,
+                              )
+                              .toList();
+
+                          double average = 0.0;
+                          if (courseActivities.isNotEmpty) {
+                            double totalSum = 0.0;
+                            int activityCount = 0;
+
+                            for (var activity in courseActivities) {
+                              final grades = activity.results[studentName];
+                              if (grades != null && grades.isNotEmpty) {
+                                double activitySum = 0.0;
+                                int gradeCount = 0;
+                                for (int? grade in grades) {
+                                  if (grade != null && grade != -1) {
+                                    activitySum += grade;
+                                    gradeCount++;
+                                  }
+                                }
+                                if (gradeCount > 0) {
+                                  totalSum += activitySum / gradeCount;
+                                  activityCount++;
+                                }
+                              }
+                            }
+
+                            average = activityCount > 0
+                                ? totalSum / activityCount
+                                : 0.0;
+                          }
+
+                          return Text(
+                            average == 0.0
+                                ? 'Average: No Score'
+                                : 'Average: ${average.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: average == 0.0
+                                  ? Colors.grey
+                                  : average >= 4.0
+                                  ? Colors.green
+                                  : average >= 3.0
+                                  ? Colors.orange
+                                  : Colors.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          );
+                        }),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete),
                           onPressed: () async {
@@ -322,11 +389,68 @@ class _ActivitiesTabState extends State<ActivitiesTab> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Text(activity.description),
-              trailing: IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  _activityController.deleteActivity(activity);
-                },
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (activity.assessment)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Active',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.check_circle_outline),
+                      tooltip: 'Activate Assessment',
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            title: const Text('Activate Assessment'),
+                            content: const Text(
+                              'An assessment will be activated for this activity. Do you want to proceed?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(dialogContext, false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    Navigator.pop(dialogContext, true),
+                                child: const Text('Accept'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          activity.assessment = true;
+                          await _activityController.updateActivity(activity);
+                        }
+                      },
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    tooltip: 'Delete Activity',
+                    onPressed: () {
+                      _activityController.deleteActivity(activity);
+                    },
+                  ),
+                ],
               ),
               onTap: () {
                 Navigator.push(
@@ -544,6 +668,7 @@ class _CategoriesTabState extends State<CategoriesTab> {
                   course: widget.course.id,
                   category: category.id!,
                   results: {},
+                  assessment: false,
                 );
 
                 await _activityController.addActivity(newActivity);

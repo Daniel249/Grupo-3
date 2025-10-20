@@ -51,14 +51,15 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _loadSavedCredentials() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedEmail = prefs.getString('saved_email') ?? '';
-      final savedPassword = prefs.getString('saved_password') ?? '';
+      final savedEmail = prefs.getString('saved_email') ?? 'a@a.com';
+      final savedPassword =
+          prefs.getString('saved_password') ?? 'ThePassword!1';
       controllerEmail.text = savedEmail;
       controllerPassword.text = savedPassword;
       _saveCredentials = savedEmail.isNotEmpty && savedPassword.isNotEmpty;
     } catch (e) {
-      controllerEmail.text = '';
-      controllerPassword.text = '';
+      controllerEmail.text = 'a@a.com';
+      controllerPassword.text = 'ThePassword!1';
     }
     setState(() {});
   }

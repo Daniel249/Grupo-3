@@ -9,14 +9,14 @@ class ActivityController extends GetxController {
   final ActivityUseCase activityUseCase = Get.find();
   final RxBool isLoading = false.obs;
   List<Activity> get activities => _activities;
-
+  /*
   @override
   void onInit() {
     //getActivities(w);
     super.onInit();
-  }
+  }*/
 
-  getActivities(String? courseId) async {
+  Future<void> getActivities(String? courseId) async {
     logInfo("ActivityController: Getting activities");
     isLoading.value = true;
     _activities.value = await activityUseCase.getActivities(courseId);

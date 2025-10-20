@@ -90,7 +90,7 @@ void main() {
   );
   Get.put<IActivityRepository>(ActivityRepository(Get.find()));
   Get.put(ActivityUseCase(Get.find()));
-  Get.lazyPut(() => ActivityController());
+  Get.put(ActivityController());
 
   // Course
   Get.lazyPut<ICourseSource>(

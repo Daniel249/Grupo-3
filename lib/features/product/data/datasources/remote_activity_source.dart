@@ -113,6 +113,7 @@ class RemoteActivitySource implements IActivitySource {
     final String courseId = (json['CourseID'] ?? '').toString();
     final String categoryId = (json['CatID'] ?? json['CategoryID'] ?? '')
         .toString();
+    final bool assessment = (json['Assessment'] ?? false);
 
     // Parse results from Notas table
     Map<String, List<int>?> results = {};
@@ -149,6 +150,7 @@ class RemoteActivitySource implements IActivitySource {
       course: courseId,
       category: categoryId,
       results: results,
+      assessment: assessment,
     );
   }
 
@@ -176,6 +178,7 @@ class RemoteActivitySource implements IActivitySource {
         'Description': activity.description,
         'CourseID': activity.course,
         'CatID': activity.category,
+        'Assessment': activity.assessment,
       };
 
       final activityBody = jsonEncode({
@@ -273,6 +276,7 @@ class RemoteActivitySource implements IActivitySource {
         'Description': activity.description,
         'CourseID': activity.course,
         'CatID': activity.category,
+        'Assessment': activity.assessment,
       };
 
       final activityBody = jsonEncode({

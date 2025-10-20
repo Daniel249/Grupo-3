@@ -1,5 +1,6 @@
 //import 'dart:ffi';
 
+import 'dart:convert';
 import 'activity.dart';
 import 'category.dart';
 
@@ -45,14 +46,14 @@ class Course {
     '_id': id,
     'Name': name,
     'Description': description,
-    'Students': studentsNames,
+    'Students': jsonEncode(studentsNames),
     'Teacher': teacher,
   };
 
   Map<String, dynamic> toJsonNoId() => {
     'Name': name,
     'Description': description,
-    'Students': studentsNames,
+    'Students': jsonEncode(studentsNames),
     'Teacher': teacher,
   };
 

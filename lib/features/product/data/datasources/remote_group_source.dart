@@ -68,7 +68,8 @@ class RemoteGroupSource implements IGroupSource {
   Group _parseGroupFromJson(Map<String, dynamic> json) {
     final String id = (json['_id'] ?? json['id'])?.toString() ?? '0';
     final String name = (json['Name'] ?? json['name'] ?? '').toString();
-    final String? categoryId = (json['CategoryId'] ?? json['categoryId'])?.toString();
+    final String? categoryId = (json['Category'] ?? json['category'])
+        ?.toString();
     final List<String> students =
         (json['Students'] ?? json['students'] ?? const [])
             .map<String>((e) => e.toString())
@@ -100,7 +101,11 @@ class RemoteGroupSource implements IGroupSource {
     final uri = Uri.parse('$baseUrl/insert');
     final headers = await _getHeaders();
 
-    final groupJson = {'Name': group.name, 'Students': group.studentsNames};
+    final groupJson = {
+      'Name': group.name,
+      'Category': group.categoryId, // Changed from 'Category' to 'CategoryId'
+      'Students': jsonEncode(group.studentsNames), // Encode as JSON string
+    };
 
     final body = jsonEncode({
       "tableName": "Groups",
@@ -109,7 +114,7 @@ class RemoteGroupSource implements IGroupSource {
 
     final response = await httpClient.post(uri, headers: headers, body: body);
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       logInfo("Web service, Group added successfully");
       return Future.value(true);
     } else {
@@ -127,7 +132,10 @@ class RemoteGroupSource implements IGroupSource {
     final uri = Uri.parse('$baseUrl/update');
     final headers = await _getHeaders();
 
-    final groupJson = {'Name': group.name, 'Students': group.studentsNames};
+    final groupJson = {
+      'Name': group.name,
+      'Students': jsonEncode(group.studentsNames), // Encode as JSON string
+    };
 
     final body = jsonEncode({
       "tableName": "Groups",

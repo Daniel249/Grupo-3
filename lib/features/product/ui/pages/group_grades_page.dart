@@ -127,7 +127,9 @@ class GroupGradesPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                           child: Text(
-                            average.toStringAsFixed(1),
+                            average == 0.0
+                                ? 'No Score'
+                                : average.toStringAsFixed(1),
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,

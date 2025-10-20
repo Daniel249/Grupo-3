@@ -8,6 +8,7 @@ class Activity {
     required this.course,
     required this.category,
     required this.results,
+    required this.assessment,
   });
 
   String? id;
@@ -15,6 +16,7 @@ class Activity {
   String description;
   String course;
   String category;
+  bool assessment;
   Map<String, List<int>?> results;
 
   factory Activity.fromJson(Map<String, dynamic> json) {
@@ -52,6 +54,7 @@ class Activity {
       description: json["Description"] ?? "---",
       course: json["CourseID"] ?? "---",
       category: json["CategoryID"] ?? "---",
+      assessment: json["Assessment"] ?? false,
       results: parsedResults,
     );
   }
@@ -62,6 +65,7 @@ class Activity {
     "Description": description,
     "CourseID": course,
     "CategoryID": category,
+    "Assessment": assessment,
   };
 
   Map<String, dynamic> toJsonNoId() => {
@@ -69,6 +73,7 @@ class Activity {
     "Description": description,
     "CourseID": course,
     "CategoryID": category,
+    "Assessment": assessment,
   };
 
   @override

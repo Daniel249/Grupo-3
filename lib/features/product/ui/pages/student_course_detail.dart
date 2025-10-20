@@ -229,94 +229,215 @@ class JoinGroupScreen extends StatelessWidget {
   final CategoryController _categoryController = Get.find<CategoryController>();
   final GroupController _groupController = Get.find<GroupController>();
 
+  void _showCreateGroupDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    Category? selectedCategory;
+
+    // Get non-random categories
+    final nonRandomCategories = _categoryController.categories
+        .where((cat) => cat.courseID == course.id && !cat.isRandomSelection)
+        .toList();
+
+    if (nonRandomCategories.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay categorías disponibles para crear grupos'),
+        ),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: const Text('Crear Grupo'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownMenu<Category>(
+                  initialSelection: selectedCategory,
+                  label: const Text('Categoría'),
+                  expandedInsets: EdgeInsets.zero,
+                  dropdownMenuEntries: nonRandomCategories.map((category) {
+                    return DropdownMenuEntry<Category>(
+                      value: category,
+                      label: category.name,
+                    );
+                  }).toList(),
+                  onSelected: (value) {
+                    setStateDialog(() {
+                      selectedCategory = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre del Grupo',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (selectedCategory == null ||
+                      nameController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Por favor completa todos los campos'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final newGroup = Group(
+                    id: '0',
+                    name: nameController.text.trim(),
+                    studentsNames: [currentUser.name],
+                    categoryId: selectedCategory!.id,
+                  );
+
+                  final success = await _groupController.addGroup(newGroup);
+
+                  if (success) {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Close JoinGroupScreen
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Error al crear el grupo')),
+                    );
+                  }
+                },
+                child: const Text('Crear'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Unirse a un grupo')),
-      body: Obx(() {
-        final categories = _categoryController.categories
-            .where((cat) => cat.courseID == course.id)
-            .toList();
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Crear Nuevo Grupo'),
+              onPressed: () => _showCreateGroupDialog(context),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+              ),
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: Obx(() {
+              final categories = _categoryController.categories
+                  .where((cat) => cat.courseID == course.id)
+                  .toList();
 
-        // Get all groups for this course through GroupController
-        final courseGroups = _groupController.groups.where((group) {
-          // Check if the group's category belongs to this course
-          final category = categories.firstWhereOrNull(
-            (cat) => cat.id == group.categoryId,
-          );
-          return category != null;
-        }).toList();
-
-        // Filter out groups where user already is a member
-        final availableGroups = courseGroups.where((group) {
-          return !group.studentsNames.contains(currentUser.name);
-        }).toList();
-
-        // Map groups to display data with category names
-        final displayGroups = availableGroups.map((group) {
-          final category = categories.firstWhereOrNull(
-            (cat) => cat.id == group.categoryId,
-          );
-          return {
-            'group': group,
-            'category': category,
-            'displayName': '${category?.name ?? 'Unknown'} - ${group.name}',
-          };
-        }).toList();
-
-        if (displayGroups.isEmpty) {
-          return const Center(child: Text('No hay grupos disponibles.'));
-        }
-
-        return ListView.builder(
-          itemCount: displayGroups.length,
-          itemBuilder: (context, index) {
-            final data = displayGroups[index];
-            final group = data['group'] as Group;
-            final displayName = data['displayName'] as String;
-
-            return ListTile(
-              title: Text(displayName),
-              onTap: () async {
-                final joined = await showDialog<bool>(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: Text('Unirse a $displayName'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Integrantes:'),
-                        ...group.studentsNames.map((s) => Text(s)),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancelar'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () async {
-                          // Add user to the group
-                          if (!group.studentsNames.contains(currentUser.name)) {
-                            group.studentsNames.add(currentUser.name);
-                            await _groupController.updateGroup(group);
-                          }
-                          Navigator.pop(context, true); // Cierra el diálogo
-                        },
-                        child: const Text('Aceptar'),
-                      ),
-                    ],
-                  ),
+              // Get all groups for this course through GroupController
+              final courseGroups = _groupController.groups.where((group) {
+                // Check if the group's category belongs to this course
+                final category = categories.firstWhereOrNull(
+                  (cat) => cat.id == group.categoryId,
                 );
-                if (joined == true) {
-                  Navigator.pop(context); // Regresa a la pantalla anterior
-                }
-              },
-            );
-          },
-        );
-      }),
+                return category != null;
+              }).toList();
+
+              // Filter out groups where user already is a member
+              final availableGroups = courseGroups.where((group) {
+                return !group.studentsNames.contains(currentUser.name);
+              }).toList();
+
+              // Map groups to display data with category names
+              final displayGroups = availableGroups.map((group) {
+                final category = categories.firstWhereOrNull(
+                  (cat) => cat.id == group.categoryId,
+                );
+                return {
+                  'group': group,
+                  'category': category,
+                  'displayName':
+                      '${category?.name ?? 'Unknown'} - ${group.name}',
+                };
+              }).toList();
+
+              if (displayGroups.isEmpty) {
+                return const Center(
+                  child: Text('No hay grupos disponibles para unirse.'),
+                );
+              }
+
+              return ListView.builder(
+                itemCount: displayGroups.length,
+                itemBuilder: (context, index) {
+                  final data = displayGroups[index];
+                  final group = data['group'] as Group;
+                  final displayName = data['displayName'] as String;
+
+                  return ListTile(
+                    title: Text(displayName),
+                    subtitle: Text('${group.studentsNames.length} miembros'),
+                    onTap: () async {
+                      final joined = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: Text('Unirse a $displayName'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Integrantes:'),
+                              ...group.studentsNames.map((s) => Text('• $s')),
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancelar'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () async {
+                                // Add user to the group
+                                if (!group.studentsNames.contains(
+                                  currentUser.name,
+                                )) {
+                                  group.studentsNames.add(currentUser.name);
+                                  await _groupController.updateGroup(group);
+                                }
+                                Navigator.pop(context, true); // Close dialog
+                              },
+                              child: const Text('Aceptar'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (joined == true) {
+                        Navigator.pop(context); // Return to previous screen
+                      }
+                    },
+                  );
+                },
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 }
