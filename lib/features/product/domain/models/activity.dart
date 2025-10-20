@@ -1,5 +1,7 @@
 //import 'dart:ffi';
 
+import 'dart:convert';
+
 class Activity {
   Activity({
     required this.id,
@@ -9,6 +11,7 @@ class Activity {
     required this.category,
     required this.results,
     required this.assessment,
+    this.studentAverages,
   });
 
   String? id;
@@ -17,38 +20,54 @@ class Activity {
   String course;
   String category;
   bool assessment;
-  Map<String, List<int>?> results;
+  // Map of student name to list of 4 fields, each field is a list of peer scores
+  Map<String, List<List<int>>> results;
+  // Calculated averages for each student
+  Map<String, double>? studentAverages;
 
   factory Activity.fromJson(Map<String, dynamic> json) {
     // Parse results from JSON
-    Map<String, List<int>?> parsedResults = {};
+    Map<String, List<List<int>>> parsedResults = {};
 
     if (json["Results"] != null && json["Results"] is Map) {
       final resultsMap = json["Results"] as Map<String, dynamic>;
 
       resultsMap.forEach((studentName, scoresValue) {
         if (scoresValue == null) {
-          parsedResults[studentName] = null;
+          parsedResults[studentName] = [[], [], [], []];
         } else if (scoresValue is String) {
-          // Parse comma-separated string into List<int>
-          if (scoresValue.isEmpty) {
-            parsedResults[studentName] = [];
-          } else {
-            parsedResults[studentName] = scoresValue
-                .split(',')
-                .map((s) => int.tryParse(s.trim()) ?? -1)
-                .toList();
+          try {
+            // Parse JSON string to List<List<int>>
+            final decoded = jsonDecode(scoresValue);
+            if (decoded is List) {
+              parsedResults[studentName] = decoded.map<List<int>>((field) {
+                if (field is List) {
+                  return field
+                      .map(
+                        (e) => e is int ? e : int.tryParse(e.toString()) ?? -1,
+                      )
+                      .toList();
+                }
+                return <int>[];
+              }).toList();
+            }
+          } catch (e) {
+            parsedResults[studentName] = [[], [], [], []];
           }
         } else if (scoresValue is List) {
-          // Already a list, just convert to List<int>
-          parsedResults[studentName] = scoresValue
-              .map((e) => e is int ? e : int.tryParse(e.toString()) ?? -1)
-              .toList();
+          parsedResults[studentName] = scoresValue.map<List<int>>((field) {
+            if (field is List) {
+              return field
+                  .map((e) => e is int ? e : int.tryParse(e.toString()) ?? -1)
+                  .toList();
+            }
+            return <int>[];
+          }).toList();
         }
       });
     }
 
-    return Activity(
+    final activity = Activity(
       id: json["_id"],
       name: json["Nombre"] ?? "---",
       description: json["Description"] ?? "---",
@@ -57,6 +76,39 @@ class Activity {
       assessment: json["Assessment"] ?? false,
       results: parsedResults,
     );
+
+    // Calculate student averages
+    activity._calculateStudentAverages();
+
+    return activity;
+  }
+
+  // Calculate average for each student across all 4 fields
+  void _calculateStudentAverages() {
+    studentAverages = {};
+
+    results.forEach((studentName, fields) {
+      double totalSum = 0.0;
+      int totalCount = 0;
+
+      // For each of the 4 fields (punctuality, contributions, commitment, attitude)
+      for (var peerScores in fields) {
+        if (peerScores.isNotEmpty) {
+          // Average all peer scores for this field
+          final validScores = peerScores.where((score) => score != -1).toList();
+          if (validScores.isNotEmpty) {
+            final fieldAvg =
+                validScores.reduce((a, b) => a + b) / validScores.length;
+            totalSum += fieldAvg;
+            totalCount++;
+          }
+        }
+      }
+
+      studentAverages![studentName] = totalCount > 0
+          ? totalSum / totalCount
+          : 0.0;
+    });
   }
 
   Map<String, dynamic> toJson() => {

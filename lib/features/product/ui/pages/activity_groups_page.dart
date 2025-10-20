@@ -34,25 +34,17 @@ class _ActivityGroupsPageState extends State<ActivityGroupsPage> {
   double _calculateGroupAverage(Group group) {
     if (group.studentsNames.isEmpty) return 0.0;
 
+    // Use pre-calculated studentAverages from activity
+    if (widget.activity.studentAverages == null) return 0.0;
+
     double totalSum = 0.0;
     int studentCount = 0;
 
     for (String studentName in group.studentsNames) {
-      final grades = widget.activity.results[studentName];
-      if (grades != null && grades.isNotEmpty) {
-        // Calculate average for this student
-        double studentSum = 0.0;
-        int gradeCount = 0;
-        for (int? grade in grades) {
-          if (grade != null && grade != -1) {
-            studentSum += grade;
-            gradeCount++;
-          }
-        }
-        if (gradeCount > 0) {
-          totalSum += studentSum / gradeCount;
-          studentCount++;
-        }
+      final studentAvg = widget.activity.studentAverages?[studentName];
+      if (studentAvg != null && studentAvg > 0.0) {
+        totalSum += studentAvg;
+        studentCount++;
       }
     }
 

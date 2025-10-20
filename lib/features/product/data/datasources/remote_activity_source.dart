@@ -116,30 +116,52 @@ class RemoteActivitySource implements IActivitySource {
     final bool assessment = (json['Assessment'] ?? false);
 
     // Parse results from Notas table
-    Map<String, List<int>?> results = {};
+    Map<String, List<List<int>>> results = {};
 
     if (notasMap.containsKey(id)) {
       final notaData = notasMap[id]!;
 
-      // Get Students array
-      final List<dynamic> students = notaData['Students'] ?? [];
+      // Get Students array - may be JSON encoded
+      List<dynamic> students = [];
+      final studentsData = notaData['Students'];
+      if (studentsData is String) {
+        try {
+          final decoded = jsonDecode(studentsData);
+          if (decoded is List) {
+            students = decoded;
+          }
+        } catch (e) {
+          students = [];
+        }
+      } else if (studentsData is List) {
+        students = studentsData;
+      }
 
-      // Get N1, N2, N3, N4 arrays
-      final List<dynamic> n1 = notaData['N1'] ?? [];
-      final List<dynamic> n2 = notaData['N2'] ?? [];
-      final List<dynamic> n3 = notaData['N3'] ?? [];
-      final List<dynamic> n4 = notaData['N4'] ?? [];
+      // Get N1, N2, N3, N4 arrays - may be JSON encoded
+      List<dynamic> n1 = _parseJsonArray(notaData['N1']);
+      List<dynamic> n2 = _parseJsonArray(notaData['N2']);
+      List<dynamic> n3 = _parseJsonArray(notaData['N3']);
+      List<dynamic> n4 = _parseJsonArray(notaData['N4']);
 
       // Create results map
       for (int i = 0; i < students.length; i++) {
         final String studentName = students[i].toString();
-        final List<int> grades = [
-          i < n1.length ? (int.tryParse(n1[i].toString()) ?? 0) : 0,
-          i < n2.length ? (int.tryParse(n2[i].toString()) ?? 0) : 0,
-          i < n3.length ? (int.tryParse(n3[i].toString()) ?? 0) : 0,
-          i < n4.length ? (int.tryParse(n4[i].toString()) ?? 0) : 0,
-        ];
-        results[studentName] = grades;
+
+        // Parse each field as a List<int>
+        final List<int> field1 = _parseFieldScores(
+          i < n1.length ? n1[i] : null,
+        );
+        final List<int> field2 = _parseFieldScores(
+          i < n2.length ? n2[i] : null,
+        );
+        final List<int> field3 = _parseFieldScores(
+          i < n3.length ? n3[i] : null,
+        );
+        final List<int> field4 = _parseFieldScores(
+          i < n4.length ? n4[i] : null,
+        );
+
+        results[studentName] = [field1, field2, field3, field4];
       }
     }
 
@@ -152,6 +174,50 @@ class RemoteActivitySource implements IActivitySource {
       results: results,
       assessment: assessment,
     );
+  }
+
+  List<dynamic> _parseJsonArray(dynamic arrayData) {
+    if (arrayData == null) return [];
+
+    if (arrayData is String) {
+      try {
+        final decoded = jsonDecode(arrayData);
+        if (decoded is List) {
+          return decoded;
+        }
+      } catch (e) {
+        return [];
+      }
+    } else if (arrayData is List) {
+      return arrayData;
+    }
+
+    return [];
+  }
+
+  List<int> _parseFieldScores(dynamic fieldData) {
+    if (fieldData == null) return [];
+
+    if (fieldData is String) {
+      try {
+        // Try to parse as JSON array
+        final decoded = jsonDecode(fieldData);
+        if (decoded is List) {
+          return decoded
+              .map((e) => e is int ? e : int.tryParse(e.toString()) ?? -1)
+              .toList();
+        }
+      } catch (e) {
+        // If not JSON, treat as empty
+        return [];
+      }
+    } else if (fieldData is List) {
+      return fieldData
+          .map((e) => e is int ? e : int.tryParse(e.toString()) ?? -1)
+          .toList();
+    }
+
+    return [];
   }
 
   Future<Map<String, String>> _getHeaders() async {
@@ -214,26 +280,27 @@ class RemoteActivitySource implements IActivitySource {
       // Insert into Notas table if there are results
       if (activity.results.isNotEmpty && activityId != null) {
         final List<String> students = activity.results.keys.toList();
-        final List<int> n1 = [];
-        final List<int> n2 = [];
-        final List<int> n3 = [];
-        final List<int> n4 = [];
+        final List<String> n1 = [];
+        final List<String> n2 = [];
+        final List<String> n3 = [];
+        final List<String> n4 = [];
 
         for (var studentName in students) {
-          final grades = activity.results[studentName] ?? [0, 0, 0, 0];
-          n1.add(grades.isNotEmpty ? grades[0] : 0);
-          n2.add(grades.length > 1 ? grades[1] : 0);
-          n3.add(grades.length > 2 ? grades[2] : 0);
-          n4.add(grades.length > 3 ? grades[3] : 0);
+          final fields = activity.results[studentName] ?? [[], [], [], []];
+          // Store each field as a JSON string
+          n1.add(jsonEncode(fields.isNotEmpty ? fields[0] : []));
+          n2.add(jsonEncode(fields.length > 1 ? fields[1] : []));
+          n3.add(jsonEncode(fields.length > 2 ? fields[2] : []));
+          n4.add(jsonEncode(fields.length > 3 ? fields[3] : []));
         }
 
         final notasJson = {
           'ActID': activityId,
-          'Students': students,
-          'N1': n1,
-          'N2': n2,
-          'N3': n3,
-          'N4': n4,
+          'Students': jsonEncode(students),
+          'N1': jsonEncode(n1),
+          'N2': jsonEncode(n2),
+          'N3': jsonEncode(n3),
+          'N4': jsonEncode(n4),
         };
 
         final notasBody = jsonEncode({
@@ -302,26 +369,27 @@ class RemoteActivitySource implements IActivitySource {
       // Update Notas table
       if (activity.results.isNotEmpty) {
         final List<String> students = activity.results.keys.toList();
-        final List<int> n1 = [];
-        final List<int> n2 = [];
-        final List<int> n3 = [];
-        final List<int> n4 = [];
+        final List<String> n1 = [];
+        final List<String> n2 = [];
+        final List<String> n3 = [];
+        final List<String> n4 = [];
 
         for (var studentName in students) {
-          final grades = activity.results[studentName] ?? [0, 0, 0, 0];
-          n1.add(grades.isNotEmpty ? grades[0] : 0);
-          n2.add(grades.length > 1 ? grades[1] : 0);
-          n3.add(grades.length > 2 ? grades[2] : 0);
-          n4.add(grades.length > 3 ? grades[3] : 0);
+          final fields = activity.results[studentName] ?? [[], [], [], []];
+          // Store each field as a JSON string
+          n1.add(jsonEncode(fields.isNotEmpty ? fields[0] : []));
+          n2.add(jsonEncode(fields.length > 1 ? fields[1] : []));
+          n3.add(jsonEncode(fields.length > 2 ? fields[2] : []));
+          n4.add(jsonEncode(fields.length > 3 ? fields[3] : []));
         }
 
         final notasJson = {
           'ActID': activity.id,
-          'Students': students,
-          'N1': n1,
-          'N2': n2,
-          'N3': n3,
-          'N4': n4,
+          'Students': jsonEncode(students),
+          'N1': jsonEncode(n1),
+          'N2': jsonEncode(n2),
+          'N3': jsonEncode(n3),
+          'N4': jsonEncode(n4),
         };
 
         final notasBody = jsonEncode({

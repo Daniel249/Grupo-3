@@ -62,20 +62,11 @@ class _CategoryPageState extends State<CategoryPage> {
     int activityCount = 0;
 
     for (var activity in _categoryActivities) {
-      final grades = activity.results[studentName];
-      if (grades != null && grades.isNotEmpty) {
-        double activitySum = 0.0;
-        int gradeCount = 0;
-        for (int? grade in grades) {
-          if (grade != null && grade != -1) {
-            activitySum += grade;
-            gradeCount++;
-          }
-        }
-        if (gradeCount > 0) {
-          totalSum += activitySum / gradeCount;
-          activityCount++;
-        }
+      // Use the pre-calculated student average from the activity
+      final average = activity.studentAverages?[studentName] ?? 0.0;
+      if (average > 0.0) {
+        totalSum += average;
+        activityCount++;
       }
     }
 

@@ -308,29 +308,175 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                         ? const Center(
                             child: Text('No hay assessments activos'),
                           )
-                        : ListView.builder(
-                            itemCount: _categoryActivities.length,
-                            itemBuilder: (context, index) {
-                              final activity = _categoryActivities[index];
-                              return ListTile(
-                                title: Text(activity.name),
-                                subtitle: Text(activity.description),
-                                trailing: const Icon(Icons.arrow_forward_ios),
-                                onTap: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => AssessmentScreen(
-                                        activity: activity,
-                                        group: widget.group,
-                                        currentUser: widget.currentUser,
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: SingleChildScrollView(
+                              child: DataTable(
+                                border: TableBorder.all(
+                                  color: Colors.grey.shade300,
+                                  width: 1,
+                                ),
+                                headingRowColor: WidgetStateProperty.all(
+                                  Colors.blue.shade50,
+                                ),
+                                columns: const [
+                                  DataColumn(
+                                    label: Text(
+                                      'Activity',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Category',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'My Average',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Group Average',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                rows: _categoryActivities.map((activity) {
+                                  final myAverage =
+                                      activity.studentAverages?[widget
+                                          .currentUser
+                                          .name] ??
+                                      0.0;
+
+                                  // Calculate group average
+                                  double groupSum = 0.0;
+                                  int groupCount = 0;
+                                  for (var studentName
+                                      in widget.group.studentsNames) {
+                                    final avg =
+                                        activity
+                                            .studentAverages?[studentName] ??
+                                        0.0;
+                                    if (avg > 0.0) {
+                                      groupSum += avg;
+                                      groupCount++;
+                                    }
+                                  }
+                                  final groupAverage = groupCount > 0
+                                      ? groupSum / groupCount
+                                      : 0.0;
+
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(
+                                        Text(activity.name),
+                                        onTap: () async {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => AssessmentScreen(
+                                                activity: activity,
+                                                group: widget.group,
+                                                currentUser: widget.currentUser,
+                                              ),
+                                            ),
+                                          );
+                                          _loadActivities();
+                                        },
+                                      ),
+                                      DataCell(
+                                        Text(widget.categoryName),
+                                        onTap: () async {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => AssessmentScreen(
+                                                activity: activity,
+                                                group: widget.group,
+                                                currentUser: widget.currentUser,
+                                              ),
+                                            ),
+                                          );
+                                          _loadActivities();
+                                        },
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          myAverage == 0.0
+                                              ? 'No Score'
+                                              : myAverage.toStringAsFixed(2),
+                                          style: TextStyle(
+                                            color: myAverage == 0.0
+                                                ? Colors.grey
+                                                : myAverage >= 4.0
+                                                ? Colors.green
+                                                : myAverage >= 3.0
+                                                ? Colors.orange
+                                                : Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        onTap: () async {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => AssessmentScreen(
+                                                activity: activity,
+                                                group: widget.group,
+                                                currentUser: widget.currentUser,
+                                              ),
+                                            ),
+                                          );
+                                          _loadActivities();
+                                        },
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          groupAverage == 0.0
+                                              ? 'No Score'
+                                              : groupAverage.toStringAsFixed(2),
+                                          style: TextStyle(
+                                            color: groupAverage == 0.0
+                                                ? Colors.grey
+                                                : groupAverage >= 4.0
+                                                ? Colors.green
+                                                : groupAverage >= 3.0
+                                                ? Colors.orange
+                                                : Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        onTap: () async {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => AssessmentScreen(
+                                                activity: activity,
+                                                group: widget.group,
+                                                currentUser: widget.currentUser,
+                                              ),
+                                            ),
+                                          );
+                                          _loadActivities();
+                                        },
+                                      ),
+                                    ],
                                   );
-                                  _loadActivities(); // Reload after assessment
-                                },
-                              );
-                            },
+                                }).toList(),
+                              ),
+                            ),
                           ),
                   ),
                 ],
@@ -617,6 +763,29 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       return;
     }
 
+    // Create a deep copy of existing results
+    final Map<String, List<List<int>>> updatedResults = {};
+    widget.activity.results.forEach((name, fields) {
+      updatedResults[name] = fields
+          .map((field) => List<int>.from(field))
+          .toList();
+    });
+
+    // Add current user's ratings to each member's score lists
+    _ratings.forEach((studentName, ratings) {
+      // Ensure the student exists in results
+      if (!updatedResults.containsKey(studentName)) {
+        updatedResults[studentName] = [[], [], [], []];
+      }
+
+      // Add this user's rating to each field's peer score list
+      for (int i = 0; i < 4; i++) {
+        if (ratings[i] != null) {
+          updatedResults[studentName]![i].add(ratings[i]!);
+        }
+      }
+    });
+
     // Update activity results
     final updatedActivity = Activity(
       id: widget.activity.id,
@@ -625,13 +794,8 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       course: widget.activity.course,
       category: widget.activity.category,
       assessment: widget.activity.assessment,
-      results: Map<String, List<int>>.from(widget.activity.results),
+      results: updatedResults,
     );
-
-    // Add or update ratings for each member
-    _ratings.forEach((studentName, ratings) {
-      updatedActivity.results[studentName] = ratings.cast<int>();
-    });
 
     await _activityController.updateActivity(updatedActivity);
 

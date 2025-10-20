@@ -214,20 +214,12 @@ class _DescriptionTabState extends State<DescriptionTab> {
                             int activityCount = 0;
 
                             for (var activity in courseActivities) {
-                              final grades = activity.results[studentName];
-                              if (grades != null && grades.isNotEmpty) {
-                                double activitySum = 0.0;
-                                int gradeCount = 0;
-                                for (int? grade in grades) {
-                                  if (grade != null && grade != -1) {
-                                    activitySum += grade;
-                                    gradeCount++;
-                                  }
-                                }
-                                if (gradeCount > 0) {
-                                  totalSum += activitySum / gradeCount;
-                                  activityCount++;
-                                }
+                              // Use pre-calculated student average from activity
+                              final studentAvg =
+                                  activity.studentAverages?[studentName] ?? 0.0;
+                              if (studentAvg > 0.0) {
+                                totalSum += studentAvg;
+                                activityCount++;
                               }
                             }
 

@@ -12,20 +12,13 @@ class GroupGradesPage extends StatelessWidget {
     required this.group,
   });
 
-  double _calculateStudentAverage(List<int?> grades) {
-    if (grades.isEmpty) return 0.0;
+  double _calculateFieldAverage(List<int> peerScores) {
+    if (peerScores.isEmpty) return 0.0;
 
-    double sum = 0.0;
-    int count = 0;
+    final validScores = peerScores.where((score) => score != -1).toList();
+    if (validScores.isEmpty) return 0.0;
 
-    for (int? grade in grades) {
-      if (grade != null && grade != -1) {
-        sum += grade;
-        count++;
-      }
-    }
-
-    return count > 0 ? sum / count : 0.0;
+    return validScores.reduce((a, b) => a + b) / validScores.length;
   }
 
   @override
@@ -94,15 +87,25 @@ class GroupGradesPage extends StatelessWidget {
                   ),
                 ],
                 rows: group.studentsNames.map((studentName) {
-                  final grades = activity.results[studentName] ?? [];
+                  final fields =
+                      activity.results[studentName] ?? [[], [], [], []];
 
-                  // Ensure we have 4 grades (pad with null if needed)
-                  final List<int?> paddedGrades = List<int?>.filled(4, null);
-                  for (int i = 0; i < grades.length && i < 4; i++) {
-                    paddedGrades[i] = grades[i];
-                  }
+                  // Calculate average for each field
+                  final field1Avg = _calculateFieldAverage(
+                    fields.isNotEmpty ? fields[0] : [],
+                  );
+                  final field2Avg = _calculateFieldAverage(
+                    fields.length > 1 ? fields[1] : [],
+                  );
+                  final field3Avg = _calculateFieldAverage(
+                    fields.length > 2 ? fields[2] : [],
+                  );
+                  final field4Avg = _calculateFieldAverage(
+                    fields.length > 3 ? fields[3] : [],
+                  );
 
-                  final average = _calculateStudentAverage(paddedGrades);
+                  // Use pre-calculated student average
+                  final average = activity.studentAverages?[studentName] ?? 0.0;
 
                   return DataRow(
                     cells: [
@@ -112,10 +115,26 @@ class GroupGradesPage extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                       ),
-                      DataCell(Text(paddedGrades[0]?.toString() ?? '-')),
-                      DataCell(Text(paddedGrades[1]?.toString() ?? '-')),
-                      DataCell(Text(paddedGrades[2]?.toString() ?? '-')),
-                      DataCell(Text(paddedGrades[3]?.toString() ?? '-')),
+                      DataCell(
+                        Text(
+                          field1Avg == 0.0 ? '-' : field1Avg.toStringAsFixed(1),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          field2Avg == 0.0 ? '-' : field2Avg.toStringAsFixed(1),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          field3Avg == 0.0 ? '-' : field3Avg.toStringAsFixed(1),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          field4Avg == 0.0 ? '-' : field4Avg.toStringAsFixed(1),
+                        ),
+                      ),
                       DataCell(
                         Container(
                           padding: const EdgeInsets.symmetric(
