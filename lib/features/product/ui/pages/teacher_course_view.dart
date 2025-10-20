@@ -385,7 +385,7 @@ class _ActivitiesTabState extends State<ActivitiesTab> {
             );
             return ListTile(
               title: Text(
-                '${activity.name} for ${category.name} category',
+                '${activity.name} for category ${category.name}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               subtitle: Text(activity.description),

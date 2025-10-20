@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controller/category_controller.dart';
 import '../controller/group_controller.dart';
+import '../controller/activity_controller.dart';
 import '../../domain/models/course.dart';
 import '../../domain/models/user.dart';
 import '../../domain/models/category.dart';
 import '../../domain/models/group.dart';
+import '../../domain/models/activity.dart';
 
 class StudentCourseDetailScreen extends StatefulWidget {
   final Course course;
@@ -96,13 +98,21 @@ class _GroupsTab extends StatefulWidget {
 class _GroupsTabState extends State<_GroupsTab> {
   final CategoryController _categoryController = Get.find<CategoryController>();
   final GroupController _groupController = Get.find<GroupController>();
+  final ActivityController _activityController = Get.find<ActivityController>();
 
   @override
+  void initState() {
+    super.initState();
+    _activityController.getActivities(widget.course.id);
+  }
+
   Widget build(BuildContext context) {
     return Obx(() {
       final categories = _categoryController.categories
           .where((cat) => cat.courseID == widget.course.id)
           .toList();
+
+      final activities = _activityController.activities;
 
       // Filter groups that contain the current user
       final userGroups = _groupController.groups.where((group) {
@@ -117,10 +127,19 @@ class _GroupsTabState extends State<_GroupsTab> {
         );
         final categoryName = category?.name ?? 'Unknown';
 
+        // Check if there are any active assessments for this category
+        final hasActiveAssessment =
+            category != null &&
+            activities.any(
+              (activity) =>
+                  activity.category == category.id && activity.assessment,
+            );
+
         return {
           'group': group,
           'category': category,
           'displayName': '$categoryName - ${group.name}',
+          'hasActiveAssessment': hasActiveAssessment,
         };
       }).toList();
 
@@ -136,9 +155,31 @@ class _GroupsTabState extends State<_GroupsTab> {
                       final group = data['group'] as Group;
                       final category = data['category'] as Category?;
                       final displayName = data['displayName'] as String;
+                      final hasActiveAssessment =
+                          data['hasActiveAssessment'] as bool;
 
                       return ListTile(
                         title: Text(displayName),
+                        trailing: hasActiveAssessment
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'Active Assessment',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              )
+                            : null,
                         onTap: () {
                           Navigator.push(
                             context,
@@ -184,7 +225,7 @@ class _GroupsTabState extends State<_GroupsTab> {
   }
 }
 
-class GroupDetailScreen extends StatelessWidget {
+class GroupDetailScreen extends StatefulWidget {
   final String categoryName;
   final Group group;
   final Category? category;
@@ -201,22 +242,100 @@ class GroupDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<GroupDetailScreen> createState() => _GroupDetailScreenState();
+}
+
+class _GroupDetailScreenState extends State<GroupDetailScreen> {
+  final ActivityController _activityController = Get.find<ActivityController>();
+  List<Activity> _categoryActivities = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActivities();
+  }
+
+  Future<void> _loadActivities() async {
+    setState(() => _isLoading = true);
+
+    await _activityController.getActivities(widget.course.id);
+
+    // Filter activities for this category that have active assessments
+    final activities = _activityController.activities
+        .where(
+          (activity) =>
+              activity.category == widget.category?.id &&
+              activity.assessment == true,
+        )
+        .toList();
+
+    setState(() {
+      _categoryActivities = activities;
+      _isLoading = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('$categoryName - ${group.name}')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Integrantes:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            ...group.studentsNames.map((s) => ListTile(title: Text(s))),
-          ],
-        ),
+      appBar: AppBar(
+        title: Text('${widget.categoryName} - ${widget.group.name}'),
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Integrantes:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  ...widget.group.studentsNames.map(
+                    (s) => ListTile(title: Text(s)),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Assessments:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: _categoryActivities.isEmpty
+                        ? const Center(
+                            child: Text('No hay assessments activos'),
+                          )
+                        : ListView.builder(
+                            itemCount: _categoryActivities.length,
+                            itemBuilder: (context, index) {
+                              final activity = _categoryActivities[index];
+                              return ListTile(
+                                title: Text(activity.name),
+                                subtitle: Text(activity.description),
+                                trailing: const Icon(Icons.arrow_forward_ios),
+                                onTap: () async {
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => AssessmentScreen(
+                                        activity: activity,
+                                        group: widget.group,
+                                        currentUser: widget.currentUser,
+                                      ),
+                                    ),
+                                  );
+                                  _loadActivities(); // Reload after assessment
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
@@ -437,6 +556,226 @@ class JoinGroupScreen extends StatelessWidget {
             }),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Assessment Screen for evaluating group members
+class AssessmentScreen extends StatefulWidget {
+  final Activity activity;
+  final Group group;
+  final User currentUser;
+
+  const AssessmentScreen({
+    super.key,
+    required this.activity,
+    required this.group,
+    required this.currentUser,
+  });
+
+  @override
+  State<AssessmentScreen> createState() => _AssessmentScreenState();
+}
+
+class _AssessmentScreenState extends State<AssessmentScreen> {
+  final ActivityController _activityController = Get.find<ActivityController>();
+
+  // Store ratings for each student: studentName -> [punctuality, contributions, commitment, attitude]
+  final Map<String, List<int?>> _ratings = {};
+
+  List<String> get _membersToRate => widget.group.studentsNames
+      .where((name) => name != widget.currentUser.name)
+      .toList();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize ratings map with null values
+    for (var member in _membersToRate) {
+      _ratings[member] = [null, null, null, null];
+    }
+  }
+
+  bool _allRatingsComplete() {
+    for (var ratings in _ratings.values) {
+      if (ratings.contains(null)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> _submitRatings() async {
+    if (!_allRatingsComplete()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor completa todas las evaluaciones'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Update activity results
+    final updatedActivity = Activity(
+      id: widget.activity.id,
+      name: widget.activity.name,
+      description: widget.activity.description,
+      course: widget.activity.course,
+      category: widget.activity.category,
+      assessment: widget.activity.assessment,
+      results: Map<String, List<int>>.from(widget.activity.results),
+    );
+
+    // Add or update ratings for each member
+    _ratings.forEach((studentName, ratings) {
+      updatedActivity.results[studentName] = ratings.cast<int>();
+    });
+
+    await _activityController.updateActivity(updatedActivity);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Evaluación enviada exitosamente'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.activity.name)),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _membersToRate.length,
+              itemBuilder: (context, index) {
+                final memberName = _membersToRate[index];
+                return _MemberRatingCard(
+                  memberName: memberName,
+                  ratings: _ratings[memberName]!,
+                  onRatingChanged: (criteriaIndex, score) {
+                    setState(() {
+                      _ratings[memberName]![criteriaIndex] = score;
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _submitRatings,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text(
+                  'Finalizar Evaluación',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Widget for rating a single member
+class _MemberRatingCard extends StatelessWidget {
+  final String memberName;
+  final List<int?> ratings;
+  final Function(int criteriaIndex, int score) onRatingChanged;
+
+  const _MemberRatingCard({
+    required this.memberName,
+    required this.ratings,
+    required this.onRatingChanged,
+  });
+
+  static const List<String> _criteria = [
+    'Puntualidad',
+    'Contribuciones',
+    'Compromiso',
+    'Actitud',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              memberName,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(_criteria.length, (criteriaIndex) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _criteria[criteriaIndex],
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(4, (scoreIndex) {
+                      final score = scoreIndex + 2; // Scores from 2 to 5
+                      final isSelected = ratings[criteriaIndex] == score;
+
+                      return InkWell(
+                        onTap: () => onRatingChanged(criteriaIndex, score),
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected ? Colors.blue : Colors.grey[300],
+                            border: Border.all(
+                              color: isSelected ? Colors.blue : Colors.grey,
+                              width: 2,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              score.toString(),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
