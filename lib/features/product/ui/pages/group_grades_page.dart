@@ -87,25 +87,46 @@ class GroupGradesPage extends StatelessWidget {
                   ),
                 ],
                 rows: group.studentsNames.map((studentName) {
-                  final fields =
-                      activity.results[studentName] ?? [[], [], [], []];
+                  // Calculate averages for each criterion
+                  // New structure: iterate through all evaluators and collect scores for this student
+                  List<List<int>> scoresPerCriterion = [[], [], [], []];
 
-                  // Calculate average for each field
+                  activity.results.forEach((evaluatorName, peerScores) {
+                    if (peerScores.containsKey(studentName)) {
+                      final scores = peerScores[studentName]!;
+                      for (int i = 0; i < scores.length && i < 4; i++) {
+                        if (scores[i] != -1) {
+                          scoresPerCriterion[i].add(scores[i]);
+                        }
+                      }
+                    }
+                  });
+
+                  // Calculate average for each criterion
                   final field1Avg = _calculateFieldAverage(
-                    fields.isNotEmpty ? fields[0] : [],
+                    scoresPerCriterion[0],
                   );
                   final field2Avg = _calculateFieldAverage(
-                    fields.length > 1 ? fields[1] : [],
+                    scoresPerCriterion[1],
                   );
                   final field3Avg = _calculateFieldAverage(
-                    fields.length > 2 ? fields[2] : [],
+                    scoresPerCriterion[2],
                   );
                   final field4Avg = _calculateFieldAverage(
-                    fields.length > 3 ? fields[3] : [],
+                    scoresPerCriterion[3],
                   );
 
-                  // Use pre-calculated student average
-                  final average = activity.studentAverages?[studentName] ?? 0.0;
+                  // Calculate overall average from criterion averages
+                  final criterionAverages = [
+                    field1Avg,
+                    field2Avg,
+                    field3Avg,
+                    field4Avg,
+                  ].where((avg) => avg > 0.0).toList();
+                  final average = criterionAverages.isNotEmpty
+                      ? criterionAverages.reduce((a, b) => a + b) /
+                            criterionAverages.length
+                      : 0.0;
 
                   return DataRow(
                     cells: [

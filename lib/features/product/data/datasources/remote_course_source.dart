@@ -129,7 +129,12 @@ class RemoteCourseSource implements ICourseSource {
       "tableName": "Course",
       "idColum": "_id",
       "idValue": course.id,
-      "updates": courseJson,
+      "updates": {
+        "Name": course.name,
+        "Description": course.description,
+        "Students": jsonEncode(course.studentsNames),
+        "Teacher": course.teacher,
+      },
     });
 
     logInfo("Full request body: $body"); // Add this line

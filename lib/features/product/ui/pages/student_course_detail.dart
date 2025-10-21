@@ -417,9 +417,15 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
 
                                   // Determine if scores should be hidden
                                   final isPublic = activity.isPublic ?? true;
-                                  final timeLeft = _calculateTimeLeft(
-                                    activity.time,
-                                  );
+
+                                  // Check if current user has completed the assessment
+                                  // Inferred from presence in results map
+                                  final hasCompleted = activity.results
+                                      .containsKey(widget.currentUser.name);
+
+                                  final timeLeft = hasCompleted
+                                      ? 'Completed'
+                                      : _calculateTimeLeft(activity.time);
 
                                   return DataRow(
                                     cells: [
@@ -543,7 +549,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                         Text(
                                           timeLeft,
                                           style: TextStyle(
-                                            color: timeLeft == 'Expired'
+                                            color: timeLeft == 'Completed'
+                                                ? Colors.green
+                                                : timeLeft == 'Expired'
                                                 ? Colors.red
                                                 : Colors.blue,
                                             fontWeight: FontWeight.bold,
@@ -832,6 +840,11 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     return now.isAfter(assessmentUtc);
   }
 
+  bool get _hasCompleted {
+    // Inferred from presence in results map
+    return widget.activity.results.containsKey(widget.currentUser.name);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -862,27 +875,28 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     }
 
     // Create a deep copy of existing results
-    final Map<String, List<List<int>>> updatedResults = {};
-    widget.activity.results.forEach((name, fields) {
-      updatedResults[name] = fields
-          .map((field) => List<int>.from(field))
-          .toList();
+    // New structure: Map<evaluatorName, Map<evaluatedStudent, List<int>>>
+    final Map<String, Map<String, List<int>>> updatedResults = {};
+    widget.activity.results.forEach((evaluator, peerScores) {
+      final Map<String, List<int>> copiedPeerScores = {};
+      peerScores.forEach((peer, scores) {
+        copiedPeerScores[peer] = List<int>.from(scores);
+      });
+      updatedResults[evaluator] = copiedPeerScores;
     });
 
-    // Add current user's ratings to each member's score lists
+    // Add current user's ratings as an evaluator
+    final Map<String, List<int>> currentUserScores = {};
     _ratings.forEach((studentName, ratings) {
-      // Ensure the student exists in results
-      if (!updatedResults.containsKey(studentName)) {
-        updatedResults[studentName] = [[], [], [], []];
-      }
-
-      // Add this user's rating to each field's peer score list
+      // Store all 4 criteria scores for this peer
+      final List<int> scoresForPeer = [];
       for (int i = 0; i < 4; i++) {
-        if (ratings[i] != null) {
-          updatedResults[studentName]![i].add(ratings[i]!);
-        }
+        scoresForPeer.add(ratings[i] ?? -1);
       }
+      currentUserScores[studentName] = scoresForPeer;
     });
+
+    updatedResults[widget.currentUser.name] = currentUserScores;
 
     // Update activity results
     final updatedActivity = Activity(
@@ -893,6 +907,10 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       category: widget.activity.category,
       assessment: widget.activity.assessment,
       results: updatedResults,
+      assessName: widget.activity.assessName,
+      isPublic: widget.activity.isPublic,
+      time: widget.activity.time,
+      already: widget.activity.already,
     );
 
     await _activityController.updateActivity(updatedActivity);
@@ -910,6 +928,167 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if user has already completed the assessment
+    if (_hasCompleted) {
+      // Get the scores the current user gave to their peers
+      final userResults = widget.activity.results[widget.currentUser.name];
+      final criteriaNames = [
+        'Punctuality',
+        'Contributions',
+        'Commitment',
+        'Attitude',
+      ];
+
+      // Calculate average for each criterion across all peers the user evaluated
+      List<double> criteriaAverages = [];
+      if (userResults != null) {
+        // For each criterion (0-3)
+        for (int criterionIndex = 0; criterionIndex < 4; criterionIndex++) {
+          List<int> scoresForCriterion = [];
+          // Collect scores for this criterion from all peers
+          userResults.forEach((peerName, scores) {
+            if (scores.length > criterionIndex &&
+                scores[criterionIndex] != -1) {
+              scoresForCriterion.add(scores[criterionIndex]);
+            }
+          });
+
+          final avg = scoresForCriterion.isNotEmpty
+              ? scoresForCriterion.reduce((a, b) => a + b) /
+                    scoresForCriterion.length
+              : 0.0;
+          criteriaAverages.add(avg);
+        }
+      }
+
+      final overallAverage = criteriaAverages.isNotEmpty
+          ? criteriaAverages.reduce((a, b) => a + b) / criteriaAverages.length
+          : 0.0;
+
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.activity.name)),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(Icons.check_circle, size: 60, color: Colors.green.shade400),
+              const SizedBox(height: 12),
+              Text(
+                'Assessment Completed',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green.shade700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'You have already submitted your evaluation.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 20),
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Your Results',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DataTable(
+                        border: TableBorder.all(color: Colors.grey.shade300),
+                        columns: const [
+                          DataColumn(
+                            label: Text(
+                              'Criteria',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text(
+                              'Average',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                        rows: [
+                          ...List.generate(criteriaNames.length, (index) {
+                            final avg = index < criteriaAverages.length
+                                ? criteriaAverages[index]
+                                : 0.0;
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(criteriaNames[index])),
+                                DataCell(
+                                  Text(
+                                    avg.toStringAsFixed(2),
+                                    style: TextStyle(
+                                      color: avg >= 4.0
+                                          ? Colors.green
+                                          : avg >= 3.0
+                                          ? Colors.orange
+                                          : Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }),
+                          DataRow(
+                            cells: [
+                              const DataCell(
+                                Text(
+                                  'Overall Average',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              DataCell(
+                                Text(
+                                  overallAverage.toStringAsFixed(2),
+                                  style: TextStyle(
+                                    color: overallAverage >= 4.0
+                                        ? Colors.green
+                                        : overallAverage >= 3.0
+                                        ? Colors.orange
+                                        : Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Go Back'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // Check if assessment has expired
     if (_isExpired) {
       return Scaffold(

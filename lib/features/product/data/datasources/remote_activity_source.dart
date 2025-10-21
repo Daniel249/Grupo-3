@@ -54,44 +54,11 @@ class RemoteActivitySource implements IActivitySource {
         return [];
       }
 
-      // Fetch all Notas
-      final notasResponse = await httpClient.get(
-        Uri.parse('$baseUrl/read?tableName=Notas'),
-        headers: headers,
-      );
-
-      Map<String, Map<String, dynamic>> notasMap = {};
-      if (notasResponse.statusCode == 200) {
-        final dynamic notasJson = jsonDecode(notasResponse.body);
-        List<dynamic> notasData;
-
-        if (notasJson is List) {
-          notasData = notasJson;
-        } else if (notasJson is Map<String, dynamic>) {
-          if (notasJson.containsKey('Notas')) {
-            notasData = notasJson['Notas'] as List<dynamic>;
-          } else if (notasJson.containsKey('data')) {
-            notasData = notasJson['data'] as List<dynamic>;
-          } else {
-            notasData = [notasJson];
-          }
-        } else {
-          notasData = [];
-        }
-
-        // Create map of activityId -> notas data
-        for (var nota in notasData) {
-          if (nota is Map<String, dynamic> && nota['ActID'] != null) {
-            notasMap[nota['ActID'].toString()] = nota;
-          }
-        }
-      }
-
-      // Parse activities and match with notas
+      // Parse activities (Notas is now a JSON column in Activities table)
       List<Activity> activities = [];
       for (var activityJson in activitiesData) {
         if (activityJson is Map<String, dynamic>) {
-          final activity = _parseActivityFromJson(activityJson, notasMap);
+          final activity = _parseActivityFromJson(activityJson);
           activities.add(activity);
         }
       }
@@ -103,10 +70,7 @@ class RemoteActivitySource implements IActivitySource {
     }
   }
 
-  Activity _parseActivityFromJson(
-    Map<String, dynamic> json,
-    Map<String, Map<String, dynamic>> notasMap,
-  ) {
+  Activity _parseActivityFromJson(Map<String, dynamic> json) {
     final String id = (json['_id'] ?? json['id'])?.toString() ?? '0';
     final String name = (json['Nombre'] ?? json['Name'] ?? '').toString();
     final String description = (json['Description'] ?? '').toString();
@@ -115,53 +79,44 @@ class RemoteActivitySource implements IActivitySource {
         .toString();
     final bool assessment = (json['Assessment'] ?? false);
 
-    // Parse results from Notas table
-    Map<String, List<List<int>>> results = {};
+    // Parse results from Notas column in Activities table
+    // New structure: Map<evaluatorName, Map<evaluatedStudent, List<int>>>
+    // Stored as JSON in Notas column
+    Map<String, Map<String, List<int>>> results = {};
 
-    if (notasMap.containsKey(id)) {
-      final notaData = notasMap[id]!;
-
-      // Get Students array - may be JSON encoded
-      List<dynamic> students = [];
-      final studentsData = notaData['Students'];
-      if (studentsData is String) {
-        try {
-          final decoded = jsonDecode(studentsData);
-          if (decoded is List) {
-            students = decoded;
-          }
-        } catch (e) {
-          students = [];
+    final notasData = json['Notas'];
+    if (notasData != null) {
+      try {
+        Map<String, dynamic> decodedResults;
+        if (notasData is String) {
+          decodedResults = jsonDecode(notasData);
+        } else if (notasData is Map) {
+          decodedResults = Map<String, dynamic>.from(notasData);
+        } else {
+          decodedResults = {};
         }
-      } else if (studentsData is List) {
-        students = studentsData;
-      }
 
-      // Get N1, N2, N3, N4 arrays - may be JSON encoded
-      List<dynamic> n1 = _parseJsonArray(notaData['N1']);
-      List<dynamic> n2 = _parseJsonArray(notaData['N2']);
-      List<dynamic> n3 = _parseJsonArray(notaData['N3']);
-      List<dynamic> n4 = _parseJsonArray(notaData['N4']);
+        // Parse each evaluator's scores
+        // Structure: {evaluatorName: {peerName: [score1, score2, score3, score4]}}
+        decodedResults.forEach((evaluatorName, peerScoresData) {
+          final Map<String, List<int>> parsedPeerScores = {};
 
-      // Create results map
-      for (int i = 0; i < students.length; i++) {
-        final String studentName = students[i].toString();
+          if (peerScoresData is Map) {
+            peerScoresData.forEach((peerName, scores) {
+              if (scores is List) {
+                parsedPeerScores[peerName.toString()] = scores
+                    .map((e) => e is int ? e : int.tryParse(e.toString()) ?? -1)
+                    .toList();
+              }
+            });
+          }
 
-        // Parse each field as a List<int>
-        final List<int> field1 = _parseFieldScores(
-          i < n1.length ? n1[i] : null,
-        );
-        final List<int> field2 = _parseFieldScores(
-          i < n2.length ? n2[i] : null,
-        );
-        final List<int> field3 = _parseFieldScores(
-          i < n3.length ? n3[i] : null,
-        );
-        final List<int> field4 = _parseFieldScores(
-          i < n4.length ? n4[i] : null,
-        );
-
-        results[studentName] = [field1, field2, field3, field4];
+          // Always add the evaluator to results, even if they have no peer scores
+          // This handles the case where a user completes an empty assessment
+          results[evaluatorName.toString()] = parsedPeerScores;
+        });
+      } catch (e) {
+        logError("Error parsing results from Notas column: $e");
       }
     }
 
@@ -176,7 +131,28 @@ class RemoteActivitySource implements IActivitySource {
       assessName: json['AssessName']?.toString(),
       isPublic: json['IsPublic'] as bool?,
       time: json['Time'] != null ? _parseDateTime(json['Time']) : null,
+      already: _parseAlreadyList(json['Already']),
     );
+  }
+
+  // Helper method to parse Already list
+  List<String>? _parseAlreadyList(dynamic alreadyValue) {
+    if (alreadyValue == null) return null;
+
+    try {
+      if (alreadyValue is String) {
+        final decoded = jsonDecode(alreadyValue);
+        if (decoded is List) {
+          return decoded.map((e) => e.toString()).toList();
+        }
+      } else if (alreadyValue is List) {
+        return alreadyValue.map((e) => e.toString()).toList();
+      }
+    } catch (e) {
+      return null;
+    }
+
+    return null;
   }
 
   // Helper method to parse DateTime from various formats
@@ -200,50 +176,6 @@ class RemoteActivitySource implements IActivitySource {
     return null;
   }
 
-  List<dynamic> _parseJsonArray(dynamic arrayData) {
-    if (arrayData == null) return [];
-
-    if (arrayData is String) {
-      try {
-        final decoded = jsonDecode(arrayData);
-        if (decoded is List) {
-          return decoded;
-        }
-      } catch (e) {
-        return [];
-      }
-    } else if (arrayData is List) {
-      return arrayData;
-    }
-
-    return [];
-  }
-
-  List<int> _parseFieldScores(dynamic fieldData) {
-    if (fieldData == null) return [];
-
-    if (fieldData is String) {
-      try {
-        // Try to parse as JSON array
-        final decoded = jsonDecode(fieldData);
-        if (decoded is List) {
-          return decoded
-              .map((e) => e is int ? e : int.tryParse(e.toString()) ?? -1)
-              .toList();
-        }
-      } catch (e) {
-        // If not JSON, treat as empty
-        return [];
-      }
-    } else if (fieldData is List) {
-      return fieldData
-          .map((e) => e is int ? e : int.tryParse(e.toString()) ?? -1)
-          .toList();
-    }
-
-    return [];
-  }
-
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -262,17 +194,19 @@ class RemoteActivitySource implements IActivitySource {
       final uri = Uri.parse('$baseUrl/insert');
       final headers = await _getHeaders();
 
-      // Insert into Activities table
+      // Insert into Activities table with Notas as JSON column
       final activityJson = {
         'Nombre': activity.name,
         'Description': activity.description,
         'CourseID': activity.course,
         'CatID': activity.category,
         'Assessment': activity.assessment,
+        'Notas': jsonEncode(activity.results), // Store results in Notas column
         if (activity.assessName != null) 'AssessName': activity.assessName,
         if (activity.isPublic != null) 'IsPublic': activity.isPublic,
         if (activity.time != null)
           'Time': activity.time!.toUtc().toIso8601String(),
+        if (activity.already != null) 'Already': jsonEncode(activity.already),
       };
 
       final activityBody = jsonEncode({
@@ -280,10 +214,16 @@ class RemoteActivitySource implements IActivitySource {
         "records": [activityJson],
       });
 
+      logInfo("Adding activity - Request body: $activityBody");
+
       final activityResponse = await httpClient.post(
         uri,
         headers: headers,
         body: activityBody,
+      );
+
+      logInfo(
+        "Adding activity - Response: ${activityResponse.statusCode} - ${activityResponse.body}",
       );
 
       if (activityResponse.statusCode != 200) {
@@ -291,62 +231,6 @@ class RemoteActivitySource implements IActivitySource {
           "Error adding activity: ${activityResponse.statusCode} - ${activityResponse.body}",
         );
         return false;
-      }
-
-      // Get the inserted activity ID from response
-      final responseData = jsonDecode(activityResponse.body);
-      String? activityId = activity.id;
-
-      // Try to extract ID from response
-      if (responseData is Map<String, dynamic>) {
-        activityId =
-            responseData['_id']?.toString() ??
-            responseData['id']?.toString() ??
-            activity.id;
-      }
-
-      // Insert into Notas table if there are results
-      if (activity.results.isNotEmpty && activityId != null) {
-        final List<String> students = activity.results.keys.toList();
-        final List<String> n1 = [];
-        final List<String> n2 = [];
-        final List<String> n3 = [];
-        final List<String> n4 = [];
-
-        for (var studentName in students) {
-          final fields = activity.results[studentName] ?? [[], [], [], []];
-          // Store each field as a JSON string
-          n1.add(jsonEncode(fields.isNotEmpty ? fields[0] : []));
-          n2.add(jsonEncode(fields.length > 1 ? fields[1] : []));
-          n3.add(jsonEncode(fields.length > 2 ? fields[2] : []));
-          n4.add(jsonEncode(fields.length > 3 ? fields[3] : []));
-        }
-
-        final notasJson = {
-          'ActID': activityId,
-          'Students': jsonEncode(students),
-          'N1': jsonEncode(n1),
-          'N2': jsonEncode(n2),
-          'N3': jsonEncode(n3),
-          'N4': jsonEncode(n4),
-        };
-
-        final notasBody = jsonEncode({
-          "tableName": "Notas",
-          "records": [notasJson],
-        });
-
-        final notasResponse = await httpClient.post(
-          uri,
-          headers: headers,
-          body: notasBody,
-        );
-
-        if (notasResponse.statusCode != 200) {
-          logError(
-            "Error adding notas: ${notasResponse.statusCode} - ${notasResponse.body}",
-          );
-        }
       }
 
       logInfo("Activity added successfully");
@@ -365,17 +249,19 @@ class RemoteActivitySource implements IActivitySource {
       final uri = Uri.parse('$baseUrl/update');
       final headers = await _getHeaders();
 
-      // Update Activities table
+      // Update Activities table with Notas as JSON column
       final activityJson = {
         'Nombre': activity.name,
         'Description': activity.description,
         'CourseID': activity.course,
         'CatID': activity.category,
         'Assessment': activity.assessment,
+        'Notas': jsonEncode(activity.results), // Store results in Notas column
         if (activity.assessName != null) 'AssessName': activity.assessName,
         if (activity.isPublic != null) 'IsPublic': activity.isPublic,
         if (activity.time != null)
           'Time': activity.time!.toUtc().toIso8601String(),
+        //if (activity.already != null) 'Already': jsonEncode(activity.already),
       };
       logInfo("Activity JSON being sent: $activityJson");
       final activityBody = jsonEncode({
@@ -385,10 +271,16 @@ class RemoteActivitySource implements IActivitySource {
         "updates": activityJson,
       });
 
+      logInfo("Updating activity - Request body: $activityBody");
+
       final activityResponse = await httpClient.put(
         uri,
         headers: headers,
         body: activityBody,
+      );
+
+      logInfo(
+        "Updating activity - Response: ${activityResponse.statusCode} - ${activityResponse.body}",
       );
 
       if (activityResponse.statusCode != 200) {
@@ -396,52 +288,6 @@ class RemoteActivitySource implements IActivitySource {
           "Error updating activity: ${activityResponse.statusCode} - ${activityResponse.body}",
         );
         return false;
-      }
-
-      // Update Notas table
-      if (activity.results.isNotEmpty) {
-        final List<String> students = activity.results.keys.toList();
-        final List<String> n1 = [];
-        final List<String> n2 = [];
-        final List<String> n3 = [];
-        final List<String> n4 = [];
-
-        for (var studentName in students) {
-          final fields = activity.results[studentName] ?? [[], [], [], []];
-          // Store each field as a JSON string
-          n1.add(jsonEncode(fields.isNotEmpty ? fields[0] : []));
-          n2.add(jsonEncode(fields.length > 1 ? fields[1] : []));
-          n3.add(jsonEncode(fields.length > 2 ? fields[2] : []));
-          n4.add(jsonEncode(fields.length > 3 ? fields[3] : []));
-        }
-
-        final notasJson = {
-          'ActID': activity.id,
-          'Students': jsonEncode(students),
-          'N1': jsonEncode(n1),
-          'N2': jsonEncode(n2),
-          'N3': jsonEncode(n3),
-          'N4': jsonEncode(n4),
-        };
-
-        final notasBody = jsonEncode({
-          "tableName": "Notas",
-          "idColumn": "ActID",
-          "idValue": activity.id,
-          "updates": notasJson,
-        });
-
-        final notasResponse = await httpClient.put(
-          uri,
-          headers: headers,
-          body: notasBody,
-        );
-
-        if (notasResponse.statusCode != 200) {
-          logError(
-            "Error updating notas: ${notasResponse.statusCode} - ${notasResponse.body}",
-          );
-        }
       }
 
       logInfo("Activity updated successfully");
@@ -460,16 +306,7 @@ class RemoteActivitySource implements IActivitySource {
       final uri = Uri.parse('$baseUrl/delete');
       final headers = await _getHeaders();
 
-      // Delete from Notas table first
-      final notasBody = jsonEncode({
-        'tableName': "Notas",
-        'idColumn': 'ActID',
-        'idValue': activity.id,
-      });
-
-      await httpClient.delete(uri, headers: headers, body: notasBody);
-
-      // Delete from Activities table
+      // Delete from Activities table (Notas is now a column in Activities)
       final activityBody = jsonEncode({
         'tableName': "Activities",
         'idColumn': '_id',
