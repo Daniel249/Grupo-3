@@ -173,7 +173,31 @@ class RemoteActivitySource implements IActivitySource {
       category: categoryId,
       results: results,
       assessment: assessment,
+      assessName: json['AssessName']?.toString(),
+      isPublic: json['IsPublic'] as bool?,
+      time: json['Time'] != null ? _parseDateTime(json['Time']) : null,
     );
+  }
+
+  // Helper method to parse DateTime from various formats
+  DateTime? _parseDateTime(dynamic timeValue) {
+    if (timeValue == null) return null;
+
+    try {
+      if (timeValue is String) {
+        return DateTime.parse(timeValue);
+      } else if (timeValue is int) {
+        // Unix timestamp in milliseconds
+        return DateTime.fromMillisecondsSinceEpoch(timeValue);
+      } else if (timeValue is DateTime) {
+        return timeValue;
+      }
+    } catch (e) {
+      // Return null if parsing fails
+      return null;
+    }
+
+    return null;
   }
 
   List<dynamic> _parseJsonArray(dynamic arrayData) {
@@ -245,6 +269,10 @@ class RemoteActivitySource implements IActivitySource {
         'CourseID': activity.course,
         'CatID': activity.category,
         'Assessment': activity.assessment,
+        if (activity.assessName != null) 'AssessName': activity.assessName,
+        if (activity.isPublic != null) 'IsPublic': activity.isPublic,
+        if (activity.time != null)
+          'Time': activity.time!.toUtc().toIso8601String(),
       };
 
       final activityBody = jsonEncode({
@@ -344,8 +372,12 @@ class RemoteActivitySource implements IActivitySource {
         'CourseID': activity.course,
         'CatID': activity.category,
         'Assessment': activity.assessment,
+        if (activity.assessName != null) 'AssessName': activity.assessName,
+        if (activity.isPublic != null) 'IsPublic': activity.isPublic,
+        if (activity.time != null)
+          'Time': activity.time!.toUtc().toIso8601String(),
       };
-
+      logInfo("Activity JSON being sent: $activityJson");
       final activityBody = jsonEncode({
         "tableName": "Activities",
         "idColumn": "_id",

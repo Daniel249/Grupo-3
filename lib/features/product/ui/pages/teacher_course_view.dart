@@ -407,30 +407,30 @@ class _ActivitiesTabState extends State<ActivitiesTab> {
                       icon: const Icon(Icons.check_circle_outline),
                       tooltip: 'Activate Assessment',
                       onPressed: () async {
-                        final confirmed = await showDialog<bool>(
+                        final result = await showDialog<Map<String, dynamic>>(
                           context: context,
-                          builder: (dialogContext) => AlertDialog(
-                            title: const Text('Activate Assessment'),
-                            content: const Text(
-                              'An assessment will be activated for this activity. Do you want to proceed?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(dialogContext, false),
-                                child: const Text('Cancel'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () =>
-                                    Navigator.pop(dialogContext, true),
-                                child: const Text('Accept'),
-                              ),
-                            ],
-                          ),
+                          builder: (dialogContext) =>
+                              _ActivateAssessmentDialog(),
                         );
 
-                        if (confirmed == true) {
+                        if (result != null) {
                           activity.assessment = true;
+                          activity.assessName = result['name'] as String;
+                          activity.isPublic = result['isPublic'] as bool;
+
+                          // Calculate end time based on duration
+                          final duration = result['duration'] as int;
+                          final unit = result['unit'] as String;
+                          final now = DateTime.now().toUtc();
+
+                          if (unit == 'minutes') {
+                            activity.time = now.add(
+                              Duration(minutes: duration),
+                            );
+                          } else {
+                            activity.time = now.add(Duration(hours: duration));
+                          }
+
                           await _activityController.updateActivity(activity);
                         }
                       },
@@ -678,6 +678,137 @@ class _CategoriesTabState extends State<CategoriesTab> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => CategoryPage(category: category)),
+    );
+  }
+}
+
+class _ActivateAssessmentDialog extends StatefulWidget {
+  const _ActivateAssessmentDialog();
+
+  @override
+  State<_ActivateAssessmentDialog> createState() =>
+      _ActivateAssessmentDialogState();
+}
+
+class _ActivateAssessmentDialogState extends State<_ActivateAssessmentDialog> {
+  final TextEditingController _nameController = TextEditingController();
+  bool _isPublic = true;
+  int _duration = 10;
+  String _unit = 'minutes';
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Activate Assessment'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Assessment Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Text('Public: '),
+                Switch(
+                  value: _isPublic,
+                  onChanged: (value) {
+                    setState(() {
+                      _isPublic = value;
+                    });
+                  },
+                ),
+                Text(_isPublic ? 'Yes' : 'No'),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Duration:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<int>(
+                    value: _duration,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [10, 30, 60].map((value) {
+                      return DropdownMenuItem(
+                        value: value,
+                        child: Text(value.toString()),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _duration = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _unit,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'minutes',
+                        child: Text('Minutes'),
+                      ),
+                      DropdownMenuItem(value: 'hours', child: Text('Hours')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _unit = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_nameController.text.isNotEmpty) {
+              Navigator.pop(context, {
+                'name': _nameController.text,
+                'isPublic': _isPublic,
+                'duration': _duration,
+                'unit': _unit,
+              });
+            }
+          },
+          child: const Text('Activate'),
+        ),
+      ],
     );
   }
 }

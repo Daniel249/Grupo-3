@@ -12,6 +12,9 @@ class Activity {
     required this.results,
     required this.assessment,
     this.studentAverages,
+    this.assessName,
+    this.isPublic,
+    this.time,
   });
 
   String? id;
@@ -24,6 +27,10 @@ class Activity {
   Map<String, List<List<int>>> results;
   // Calculated averages for each student
   Map<String, double>? studentAverages;
+  // Optional fields for active assessment
+  String? assessName;
+  bool? isPublic;
+  DateTime? time;
 
   factory Activity.fromJson(Map<String, dynamic> json) {
     // Parse results from JSON
@@ -75,12 +82,36 @@ class Activity {
       category: json["CategoryID"] ?? "---",
       assessment: json["Assessment"] ?? false,
       results: parsedResults,
+      assessName: json["AssessName"]?.toString(),
+      isPublic: json["IsPublic"] as bool?,
+      time: json["Time"] != null ? _parseDateTime(json["Time"]) : null,
     );
 
     // Calculate student averages
     activity._calculateStudentAverages();
 
     return activity;
+  }
+
+  // Helper method to parse DateTime from various formats
+  static DateTime? _parseDateTime(dynamic timeValue) {
+    if (timeValue == null) return null;
+
+    try {
+      if (timeValue is String) {
+        return DateTime.parse(timeValue);
+      } else if (timeValue is int) {
+        // Unix timestamp in milliseconds
+        return DateTime.fromMillisecondsSinceEpoch(timeValue);
+      } else if (timeValue is DateTime) {
+        return timeValue;
+      }
+    } catch (e) {
+      // Return null if parsing fails
+      return null;
+    }
+
+    return null;
   }
 
   // Calculate average for each student across all 4 fields
@@ -118,6 +149,9 @@ class Activity {
     "CourseID": course,
     "CategoryID": category,
     "Assessment": assessment,
+    if (assessName != null) "AssessName": assessName,
+    if (isPublic != null) "IsPublic": isPublic,
+    if (time != null) "Time": time!.toUtc().toIso8601String(),
   };
 
   Map<String, dynamic> toJsonNoId() => {
@@ -126,6 +160,9 @@ class Activity {
     "CourseID": course,
     "CategoryID": category,
     "Assessment": assessment,
+    if (assessName != null) "AssessName": assessName,
+    if (isPublic != null) "IsPublic": isPublic,
+    if (time != null) "Time": time!.toUtc().toIso8601String(),
   };
 
   @override

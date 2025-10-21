@@ -34,7 +34,7 @@ class CourseController extends GetxController {
     getCourses();
   }
 
-  updateCourse(Course course) async {
+  Future<void> updateCourse(Course course) async {
     logInfo("ProductController: Update course");
     await courseUseCase.updateCourse(course);
     await getCourses();

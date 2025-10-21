@@ -276,6 +276,27 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
     });
   }
 
+  String _calculateTimeLeft(DateTime? assessmentTime) {
+    if (assessmentTime == null) return 'N/A';
+
+    final now = DateTime.now().toUtc();
+    final assessmentUtc = assessmentTime.toUtc();
+    final difference = assessmentUtc.difference(now);
+
+    if (difference.isNegative) {
+      return 'Expired';
+    }
+
+    final hours = difference.inHours;
+    final minutes = difference.inMinutes.remainder(60);
+
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else {
+      return '${minutes}m';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -330,6 +351,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                   ),
                                   DataColumn(
                                     label: Text(
+                                      'Assessment',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
                                       'Category',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
@@ -347,6 +376,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                   DataColumn(
                                     label: Text(
                                       'Group Average',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: Text(
+                                      'Time Left',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -378,10 +415,32 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                       ? groupSum / groupCount
                                       : 0.0;
 
+                                  // Determine if scores should be hidden
+                                  final isPublic = activity.isPublic ?? true;
+                                  final timeLeft = _calculateTimeLeft(
+                                    activity.time,
+                                  );
+
                                   return DataRow(
                                     cells: [
                                       DataCell(
                                         Text(activity.name),
+                                        onTap: () async {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => AssessmentScreen(
+                                                activity: activity,
+                                                group: widget.group,
+                                                currentUser: widget.currentUser,
+                                              ),
+                                            ),
+                                          );
+                                          _loadActivities();
+                                        },
+                                      ),
+                                      DataCell(
+                                        Text(activity.assessName ?? 'N/A'),
                                         onTap: () async {
                                           await Navigator.push(
                                             context,
@@ -414,11 +473,15 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                       ),
                                       DataCell(
                                         Text(
-                                          myAverage == 0.0
+                                          !isPublic
+                                              ? 'Hidden'
+                                              : myAverage == 0.0
                                               ? 'No Score'
                                               : myAverage.toStringAsFixed(2),
                                           style: TextStyle(
-                                            color: myAverage == 0.0
+                                            color: !isPublic
+                                                ? Colors.grey
+                                                : myAverage == 0.0
                                                 ? Colors.grey
                                                 : myAverage >= 4.0
                                                 ? Colors.green
@@ -444,17 +507,45 @@ class _GroupDetailScreenState extends State<GroupDetailScreen> {
                                       ),
                                       DataCell(
                                         Text(
-                                          groupAverage == 0.0
+                                          !isPublic
+                                              ? 'Hidden'
+                                              : groupAverage == 0.0
                                               ? 'No Score'
                                               : groupAverage.toStringAsFixed(2),
                                           style: TextStyle(
-                                            color: groupAverage == 0.0
+                                            color: !isPublic
+                                                ? Colors.grey
+                                                : groupAverage == 0.0
                                                 ? Colors.grey
                                                 : groupAverage >= 4.0
                                                 ? Colors.green
                                                 : groupAverage >= 3.0
                                                 ? Colors.orange
                                                 : Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        onTap: () async {
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => AssessmentScreen(
+                                                activity: activity,
+                                                group: widget.group,
+                                                currentUser: widget.currentUser,
+                                              ),
+                                            ),
+                                          );
+                                          _loadActivities();
+                                        },
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          timeLeft,
+                                          style: TextStyle(
+                                            color: timeLeft == 'Expired'
+                                                ? Colors.red
+                                                : Colors.blue,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -734,6 +825,13 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
       .where((name) => name != widget.currentUser.name)
       .toList();
 
+  bool get _isExpired {
+    if (widget.activity.time == null) return false;
+    final now = DateTime.now().toUtc();
+    final assessmentUtc = widget.activity.time!.toUtc();
+    return now.isAfter(assessmentUtc);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -812,6 +910,57 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if assessment has expired
+    if (_isExpired) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.activity.name)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.access_time_filled,
+                  size: 100,
+                  color: Colors.red.shade400,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Expired Assessment',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'This assessment has expired and is no longer available.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, color: Colors.grey.shade700),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Go Back'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Normal assessment screen
     return Scaffold(
       appBar: AppBar(title: Text(widget.activity.name)),
       body: Column(
