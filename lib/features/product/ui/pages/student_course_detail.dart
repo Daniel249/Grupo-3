@@ -128,12 +128,27 @@ class _GroupsTabState extends State<_GroupsTab> {
         final categoryName = category?.name ?? 'Unknown';
 
         // Check if there are any active assessments for this category
+        // Active means: has assessment, time hasn't expired, and student hasn't completed it
         final hasActiveAssessment =
             category != null &&
-            activities.any(
-              (activity) =>
-                  activity.category == category.id && activity.assessment,
-            );
+            activities.any((activity) {
+              if (activity.category != category.id || !activity.assessment) {
+                return false;
+              }
+
+              // Check if time hasn't expired
+              if (activity.time != null &&
+                  DateTime.now().isAfter(activity.time!)) {
+                return false;
+              }
+
+              // Check if student hasn't completed it (student's name not in results)
+              if (activity.results.containsKey(widget.currentUser.name)) {
+                return false;
+              }
+
+              return true;
+            });
 
         return {
           'group': group,
@@ -663,6 +678,18 @@ class JoinGroupScreen extends StatelessWidget {
                     return;
                   }
 
+                  // Check if group size is valid (at least 1 member)
+                  if (selectedCategory!.groupSize < 1) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'El tamaño del grupo debe ser al menos 1',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+
                   final newGroup = Group(
                     id: '0',
                     name: nameController.text.trim(),
@@ -723,9 +750,22 @@ class JoinGroupScreen extends StatelessWidget {
                 return category != null;
               }).toList();
 
-              // Filter out groups where user already is a member
+              // Filter out groups where user already is a member OR groups that are full
               final availableGroups = courseGroups.where((group) {
-                return !group.studentsNames.contains(currentUser.name);
+                if (group.studentsNames.contains(currentUser.name)) {
+                  return false; // User is already a member
+                }
+
+                // Check if group is full
+                final category = categories.firstWhereOrNull(
+                  (cat) => cat.id == group.categoryId,
+                );
+                if (category != null &&
+                    group.studentsNames.length >= category.groupSize) {
+                  return false; // Group is full
+                }
+
+                return true;
               }).toList();
 
               // Map groups to display data with category names
@@ -752,49 +792,97 @@ class JoinGroupScreen extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final data = displayGroups[index];
                   final group = data['group'] as Group;
+                  final category = data['category'] as Category?;
                   final displayName = data['displayName'] as String;
+
+                  final groupCapacity = category?.groupSize ?? 0;
+                  final currentSize = group.studentsNames.length;
+                  final isFull = currentSize >= groupCapacity;
 
                   return ListTile(
                     title: Text(displayName),
-                    subtitle: Text('${group.studentsNames.length} miembros'),
-                    onTap: () async {
-                      final joined = await showDialog<bool>(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: Text('Unirse a $displayName'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Integrantes:'),
-                              ...group.studentsNames.map((s) => Text('• $s')),
-                            ],
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancelar'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () async {
-                                // Add user to the group
-                                if (!group.studentsNames.contains(
-                                  currentUser.name,
-                                )) {
-                                  group.studentsNames.add(currentUser.name);
-                                  await _groupController.updateGroup(group);
-                                }
-                                Navigator.pop(context, true); // Close dialog
-                              },
-                              child: const Text('Aceptar'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (joined == true) {
-                        Navigator.pop(context); // Return to previous screen
-                      }
-                    },
+                    subtitle: Text(
+                      isFull
+                          ? '$currentSize/$groupCapacity miembros (Full)'
+                          : '$currentSize/$groupCapacity miembros',
+                      style: TextStyle(color: isFull ? Colors.red : null),
+                    ),
+                    trailing: isFull
+                        ? Icon(Icons.block, color: Colors.red)
+                        : null,
+                    onTap: isFull
+                        ? null
+                        : () async {
+                            final joined = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: Text('Unirse a $displayName'),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Capacidad: $currentSize/$groupCapacity',
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text('Integrantes:'),
+                                    ...group.studentsNames.map(
+                                      (s) => Text('• $s'),
+                                    ),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () async {
+                                      // Double-check group capacity before adding
+                                      if (group.studentsNames.length >=
+                                          groupCapacity) {
+                                        Navigator.pop(context, false);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'El grupo está lleno',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      // Add user to the group
+                                      if (!group.studentsNames.contains(
+                                        currentUser.name,
+                                      )) {
+                                        group.studentsNames.add(
+                                          currentUser.name,
+                                        );
+                                        await _groupController.updateGroup(
+                                          group,
+                                        );
+                                      }
+                                      Navigator.pop(
+                                        context,
+                                        true,
+                                      ); // Close dialog
+                                    },
+                                    child: const Text('Aceptar'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (joined == true) {
+                              Navigator.pop(
+                                context,
+                              ); // Return to previous screen
+                            }
+                          },
                   );
                 },
               );
