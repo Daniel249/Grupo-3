@@ -5,6 +5,7 @@ import '../../domain/use_case/category_usecase.dart';
 import '../../domain/models/group.dart';
 import 'group_controller.dart';
 import 'course_controller.dart';
+import '../../domain/usecases/group_use_case.dart';
 
 class CategoryController extends GetxController {
   final RxList<Category> _categories = <Category>[].obs;
@@ -97,18 +98,31 @@ class CategoryController extends GetxController {
     // First, delete all groups that belong to this category
     if (category.id != null) {
       final groupController = Get.find<GroupController>();
+      final groupUseCase = Get.find<GroupUseCase>();
 
       // Get all groups
       await groupController.getGroups();
 
-      // Find and delete groups with matching categoryId
+      // Find groups with matching categoryId (create a copy of the list)
       final groupsToDelete = groupController.groups
           .where((group) => group.categoryId == category.id)
           .toList();
 
+      print(
+        'Deleting category ${category.id}, found ${groupsToDelete.length} groups to delete',
+      );
+
+      // Delete each group using the use case directly to avoid multiple refreshes
       for (final group in groupsToDelete) {
-        await groupController.deleteGroup(group);
+        print(
+          'Deleting group ${group.id} (${group.name}) with categoryId ${group.categoryId}',
+        );
+        // Use the use case directly to avoid calling getGroups() after each deletion
+        await groupUseCase.deleteGroup(group);
       }
+
+      // Refresh groups list once after all deletions
+      await groupController.getGroups();
     }
 
     // Then delete the category

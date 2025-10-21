@@ -195,7 +195,7 @@ class _ListCoursePageState extends State<ListCoursePage> {
                 ),
                 if (!_isTeacherView)
                   Positioned(
-                    bottom: 16,
+                    bottom: 16 + MediaQuery.of(context).padding.bottom,
                     left: 16,
                     right: 16,
                     child: ElevatedButton.icon(

@@ -172,151 +172,161 @@ class _DescriptionTabState extends State<DescriptionTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Description', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          Text(widget.course.description),
-          const SizedBox(height: 16),
-          const Text('Students'),
-          const SizedBox(height: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: widget.course.studentsNames.length,
-                    itemBuilder: (context, index) {
-                      final studentName = widget.course.studentsNames[index];
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Description',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(widget.course.description),
+            const SizedBox(height: 16),
+            const Text('Students'),
+            const SizedBox(height: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: widget.course.studentsNames.length,
+                      itemBuilder: (context, index) {
+                        final studentName = widget.course.studentsNames[index];
 
-                      return ListTile(
-                        title: Text(studentName),
-                        subtitle: Obx(() {
-                          // Access the observable to make Obx track it
-                          final activities = _activityController.activities;
+                        return ListTile(
+                          title: Text(studentName),
+                          subtitle: Obx(() {
+                            // Access the observable to make Obx track it
+                            final activities = _activityController.activities;
 
-                          // Calculate average inline to ensure reactivity
-                          final courseActivities = activities
-                              .where(
-                                (activity) =>
-                                    activity.course == widget.course.id,
-                              )
-                              .toList();
+                            // Calculate average inline to ensure reactivity
+                            final courseActivities = activities
+                                .where(
+                                  (activity) =>
+                                      activity.course == widget.course.id,
+                                )
+                                .toList();
 
-                          double average = 0.0;
-                          if (courseActivities.isNotEmpty) {
-                            double totalSum = 0.0;
-                            int activityCount = 0;
+                            double average = 0.0;
+                            if (courseActivities.isNotEmpty) {
+                              double totalSum = 0.0;
+                              int activityCount = 0;
 
-                            for (var activity in courseActivities) {
-                              // Use pre-calculated student average from activity
-                              final studentAvg =
-                                  activity.studentAverages?[studentName] ?? 0.0;
-                              if (studentAvg > 0.0) {
-                                totalSum += studentAvg;
-                                activityCount++;
+                              for (var activity in courseActivities) {
+                                // Use pre-calculated student average from activity
+                                final studentAvg =
+                                    activity.studentAverages?[studentName] ??
+                                    0.0;
+                                if (studentAvg > 0.0) {
+                                  totalSum += studentAvg;
+                                  activityCount++;
+                                }
                               }
+
+                              average = activityCount > 0
+                                  ? totalSum / activityCount
+                                  : 0.0;
                             }
 
-                            average = activityCount > 0
-                                ? totalSum / activityCount
-                                : 0.0;
-                          }
+                            return Text(
+                              average == 0.0
+                                  ? 'Average: No Score'
+                                  : 'Average: ${average.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                color: average == 0.0
+                                    ? Colors.grey
+                                    : average >= 4.0
+                                    ? Colors.green
+                                    : average >= 3.0
+                                    ? Colors.orange
+                                    : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          }),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () async {
+                              // Modify widget.course directly
+                              widget.course.studentsNames.removeAt(index);
 
-                          return Text(
-                            average == 0.0
-                                ? 'Average: No Score'
-                                : 'Average: ${average.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              color: average == 0.0
-                                  ? Colors.grey
-                                  : average >= 4.0
-                                  ? Colors.green
-                                  : average >= 3.0
-                                  ? Colors.orange
-                                  : Colors.red,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          );
-                        }),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () async {
-                            // Modify widget.course directly
-                            widget.course.studentsNames.removeAt(index);
+                              await _courseController.updateCourse(
+                                widget.course,
+                              );
+                              await _courseController.getCourses();
 
-                            await _courseController.updateCourse(widget.course);
-                            await _courseController.getCourses();
-
-                            setState(
-                              () {},
-                            ); // Just rebuild to show updated data
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                  ElevatedButton(
-                    onPressed: () => _showAddStudentDialog(context),
-                    child: const Text('Add Student'),
-                  ),
-                ],
+                              setState(
+                                () {},
+                              ); // Just rebuild to show updated data
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    ElevatedButton(
+                      onPressed: () => _showAddStudentDialog(context),
+                      child: const Text('Add Student'),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => _showUpdateDescriptionDialog(context),
-                  child: const Text('Update Description'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _showUpdateDescriptionDialog(context),
+                    child: const Text('Update Description'),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Delete Course'),
-                        content: const Text(
-                          'Are you sure you want to delete this course?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Delete Course'),
+                          content: const Text(
+                            'Are you sure you want to delete this course?',
                           ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
                             ),
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ),
-                    );
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                              ),
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
 
-                    if (confirmed ?? false) {
-                      await _courseController.deleteCourse(widget.course);
-                      Navigator.pop(context);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Delete Course'),
+                      if (confirmed ?? false) {
+                        await _courseController.deleteCourse(widget.course);
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: const Text('Delete Course'),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -492,57 +502,61 @@ class _CategoriesTabState extends State<CategoriesTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          Expanded(
-            child: Obx(
-              () => ListView.builder(
-                itemCount: _courseCategories.length,
-                itemBuilder: (context, index) {
-                  final category = _courseCategories[index];
-                  return ListTile(
-                    title: Text(category.name),
-                    subtitle: Text(
-                      category.isRandomSelection
-                          ? 'Random Selection'
-                          : 'Self-Organized',
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          tooltip: 'Add Activity',
-                          onPressed: () {
-                            _showAddActivityDialog(context, category);
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          tooltip: 'Delete Category',
-                          onPressed: () async {
-                            await _categoryController.deleteCategory(category);
-                            await _categoryController.getCategories(
-                              widget.course.id,
-                            );
-                            setState(() {});
-                          },
-                        ),
-                      ],
-                    ),
-                    onTap: () => _showCategoryPage(context, category),
-                  );
-                },
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Expanded(
+              child: Obx(
+                () => ListView.builder(
+                  itemCount: _courseCategories.length,
+                  itemBuilder: (context, index) {
+                    final category = _courseCategories[index];
+                    return ListTile(
+                      title: Text(category.name),
+                      subtitle: Text(
+                        category.isRandomSelection
+                            ? 'Random Selection'
+                            : 'Self-Organized',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.add),
+                            tooltip: 'Add Activity',
+                            onPressed: () {
+                              _showAddActivityDialog(context, category);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            tooltip: 'Delete Category',
+                            onPressed: () async {
+                              await _categoryController.deleteCategory(
+                                category,
+                              );
+                              await _categoryController.getCategories(
+                                widget.course.id,
+                              );
+                              setState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                      onTap: () => _showCategoryPage(context, category),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => _showAddCategoryDialog(context),
-            child: const Text('Add Category'),
-          ),
-        ],
+            ElevatedButton(
+              onPressed: () => _showAddCategoryDialog(context),
+              child: const Text('Add Category'),
+            ),
+          ],
+        ),
       ),
     );
   }

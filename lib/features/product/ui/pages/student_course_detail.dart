@@ -158,83 +158,85 @@ class _GroupsTabState extends State<_GroupsTab> {
         };
       }).toList();
 
-      return Column(
-        children: [
-          Expanded(
-            child: displayGroups.isEmpty
-                ? const Center(child: Text('No perteneces a ningún grupo.'))
-                : ListView.builder(
-                    itemCount: displayGroups.length,
-                    itemBuilder: (context, index) {
-                      final data = displayGroups[index];
-                      final group = data['group'] as Group;
-                      final category = data['category'] as Category?;
-                      final displayName = data['displayName'] as String;
-                      final hasActiveAssessment =
-                          data['hasActiveAssessment'] as bool;
+      return SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: displayGroups.isEmpty
+                  ? const Center(child: Text('No perteneces a ningún grupo.'))
+                  : ListView.builder(
+                      itemCount: displayGroups.length,
+                      itemBuilder: (context, index) {
+                        final data = displayGroups[index];
+                        final group = data['group'] as Group;
+                        final category = data['category'] as Category?;
+                        final displayName = data['displayName'] as String;
+                        final hasActiveAssessment =
+                            data['hasActiveAssessment'] as bool;
 
-                      return ListTile(
-                        title: Text(displayName),
-                        trailing: hasActiveAssessment
-                            ? Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text(
-                                  'Active Assessment',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                        return ListTile(
+                          title: Text(displayName),
+                          trailing: hasActiveAssessment
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
                                   ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Text(
+                                    'Active Assessment',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => GroupDetailScreen(
+                                  categoryName: category?.name ?? 'Unknown',
+                                  group: group,
+                                  category: category,
+                                  currentUser: widget.currentUser,
+                                  course: widget.course,
                                 ),
-                              )
-                            : null,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => GroupDetailScreen(
-                                categoryName: category?.name ?? 'Unknown',
-                                group: group,
-                                category: category,
-                                currentUser: widget.currentUser,
-                                course: widget.course,
                               ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.group_add),
-              label: const Text('Agregarme a un grupo'),
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => JoinGroupScreen(
-                      course: widget.course,
-                      currentUser: widget.currentUser,
+                            );
+                          },
+                        );
+                      },
                     ),
-                  ),
-                );
-                await _groupController.getGroups();
-                await _categoryController.getCategories(widget.course.id);
-                if (mounted) setState(() {});
-              },
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.group_add),
+                label: const Text('Agregarme a un grupo'),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => JoinGroupScreen(
+                        course: widget.course,
+                        currentUser: widget.currentUser,
+                      ),
+                    ),
+                  );
+                  await _groupController.getGroups();
+                  await _categoryController.getCategories(widget.course.id);
+                  if (mounted) setState(() {});
+                },
+              ),
+            ),
+          ],
+        ),
       );
     });
   }
@@ -1230,43 +1232,45 @@ class _AssessmentScreenState extends State<AssessmentScreen> {
     // Normal assessment screen
     return Scaffold(
       appBar: AppBar(title: Text(widget.activity.name)),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _membersToRate.length,
-              itemBuilder: (context, index) {
-                final memberName = _membersToRate[index];
-                return _MemberRatingCard(
-                  memberName: memberName,
-                  ratings: _ratings[memberName]!,
-                  onRatingChanged: (criteriaIndex, score) {
-                    setState(() {
-                      _ratings[memberName]![criteriaIndex] = score;
-                    });
-                  },
-                );
-              },
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _membersToRate.length,
+                itemBuilder: (context, index) {
+                  final memberName = _membersToRate[index];
+                  return _MemberRatingCard(
+                    memberName: memberName,
+                    ratings: _ratings[memberName]!,
+                    onRatingChanged: (criteriaIndex, score) {
+                      setState(() {
+                        _ratings[memberName]![criteriaIndex] = score;
+                      });
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _submitRatings,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text(
-                  'Finalizar Evaluación',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submitRatings,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text(
+                    'Finalizar Evaluación',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
