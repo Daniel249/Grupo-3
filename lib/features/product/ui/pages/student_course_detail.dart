@@ -865,14 +865,37 @@ class JoinGroupScreen extends StatelessWidget {
                                         group.studentsNames.add(
                                           currentUser.name,
                                         );
-                                        await _groupController.updateGroup(
-                                          group,
-                                        );
+                                        final success = await _groupController
+                                            .updateGroup(group);
+
+                                        if (success) {
+                                          Navigator.pop(
+                                            context,
+                                            true,
+                                          ); // Close dialog with success
+                                        } else {
+                                          // Remove user if update failed
+                                          group.studentsNames.remove(
+                                            currentUser.name,
+                                          );
+                                          Navigator.pop(context, false);
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Error al unirse al grupo',
+                                              ),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                      } else {
+                                        Navigator.pop(
+                                          context,
+                                          true,
+                                        ); // Already in group
                                       }
-                                      Navigator.pop(
-                                        context,
-                                        true,
-                                      ); // Close dialog
                                     },
                                     child: const Text('Aceptar'),
                                   ),
@@ -880,6 +903,8 @@ class JoinGroupScreen extends StatelessWidget {
                               ),
                             );
                             if (joined == true) {
+                              // Refresh groups before going back
+                              await _groupController.getGroups();
                               Navigator.pop(
                                 context,
                               ); // Return to previous screen
