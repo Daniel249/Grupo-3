@@ -127,7 +127,7 @@ class RemoteCourseSource implements ICourseSource {
 
     final body = jsonEncode({
       "tableName": "Course",
-      "idColum": "_id",
+      "idColumn": "_id",
       "idValue": course.id,
       "updates": {
         "Name": course.name,
