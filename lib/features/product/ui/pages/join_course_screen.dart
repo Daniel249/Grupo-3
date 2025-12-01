@@ -35,15 +35,23 @@ class _JoinCourseScreenState extends State<JoinCourseScreen> {
   }
 
   void _showJoinDialog(Course course) async {
-    final idController = TextEditingController();
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Unirse a ${course.name}'),
-        content: TextField(
-          controller: idController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: 'Ingresa el ID del curso'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('¿Deseas unirte a este curso?'),
+            const SizedBox(height: 8),
+            Text(
+              'Profesor: ${course.teacher}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(course.description),
+          ],
         ),
         actions: [
           TextButton(
@@ -51,25 +59,23 @@ class _JoinCourseScreenState extends State<JoinCourseScreen> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              if (idController.text == course.id.toString()) {
-                // Crear nuevo objeto Course con el estudiante agregado
-                final updatedStudents = [...course.studentsNames];
-                if (!updatedStudents.contains(widget.currentUser.name)) {
-                  updatedStudents.add(widget.currentUser.name);
-                }
-                final updatedCourse = Course(
-                  id: course.id,
-                  name: course.name,
-                  description: course.description,
-                  studentsNames: updatedStudents,
-                  teacher: course.teacher,
-                  activities: course.activities,
-                  categories: course.categories,
-                );
-                _courseController.updateCourse(updatedCourse);
-                Navigator.pop(context, true);
+            onPressed: () async {
+              // Crear nuevo objeto Course con el estudiante agregado
+              final updatedStudents = [...course.studentsNames];
+              if (!updatedStudents.contains(widget.currentUser.name)) {
+                updatedStudents.add(widget.currentUser.name);
               }
+              final updatedCourse = Course(
+                id: course.id,
+                name: course.name,
+                description: course.description,
+                studentsNames: updatedStudents,
+                teacher: course.teacher,
+                activities: course.activities,
+                categories: course.categories,
+              );
+              await _courseController.updateCourse(updatedCourse);
+              Navigator.pop(context, true);
             },
             child: const Text('Unirse'),
           ),
