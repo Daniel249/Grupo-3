@@ -3,7 +3,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     
     <application
-        android:label="f_clean_template"
+        android:label="flutterapp"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
