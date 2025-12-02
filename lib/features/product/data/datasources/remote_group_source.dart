@@ -139,7 +139,7 @@ class RemoteGroupSource implements IGroupSource {
 
     final body = jsonEncode({
       "tableName": "Groups",
-      "idColum": "_id",
+      "idColumn": "_id",
       "idValue": group.id,
       "updates": groupJson,
     });
